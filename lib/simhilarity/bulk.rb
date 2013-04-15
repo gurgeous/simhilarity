@@ -5,7 +5,10 @@ module Simhilarity
   # bulk. For example, this is used if you want to match 50 new
   # addresses against your database of 1,000 known addresses.
   class Bulk < Matcher
-    # Initialize a new Bulk matcher - See Matcher#initialize.
+    # Initialize a new Bulk matcher. See Matcher#initialize. Bulk adds
+    # these options:
+    #
+    # +candidate_overlaps:+ number of ngram required to generate a candidate
     def initialize(options = {})
       super(options)
 
@@ -15,7 +18,7 @@ module Simhilarity
     end
 
     # Match each item in +needle+ to an item in +haystack+. Returns an
-    # array of tuples, [needle, haystack, score]. Simhilarity scores
+    # array of tuples, <tt>[needle, haystack, score]</tt>. Scores
     # range from 0 to 1, with 1 being a perfect match and 0 being a
     # terrible match.
     def matches(needle, haystack)

@@ -1,29 +1,30 @@
 module Simhilarity
-  # A potential match between two +Elements". It can calculate it's own score.
+  # A potential match between two +Elements+. It can calculate it's own score.
   class Candidate
-    # Owner for this guy.
+    # matcher that owns this guy
     attr_reader :matcher
 
-    # Needle.
+    # first half of the candidate pair - the needle.
     attr_reader :a
 
-    # Haystack.
+    # first half of the candidate pair - the haystack.
     attr_reader :b
 
-    def initialize(matcher, a, b)
+    def initialize(matcher, a, b) #:nodoc:
       @matcher = matcher
       @a = a
       @b = b
     end
 
-    # Calculate the score for this +Candidate+. We calculate three values:
+    # Calculate the score for this +Candidate+. The score is the {dice
+    # coefficient}[http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient],
+    # <tt>(2*c)/(a+b)</tt>.
     #
     # * +a+: the weighted sum of the ngrams in a
     # * +b+: the weighted sum of the ngrams in b
     # * +c+: the weighted sum of the ngrams in (a & b)
     #
-    # The final score is the dice coefficient, +(2*c)/(a+b)+. Lazily
-    # calculated.
+    # Lazily calculated and memoized.
     def score
       @score ||= begin
         a = self.a.ngrams_sum
@@ -33,7 +34,7 @@ module Simhilarity
       end
     end
 
-    def to_s
+    def to_s #:nodoc:
       "Candidate #{score}: #{a.inspect}..#{b.inspect}"
     end
   end

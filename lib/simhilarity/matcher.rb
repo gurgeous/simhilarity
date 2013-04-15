@@ -19,9 +19,9 @@ module Simhilarity
 
     # Create a new Matcher matcher. Options include:
     #
-    # * +:reader+: Proc for turning opaque items into strings.
-    # * +:normalizer+: Proc for normalizing strings.
-    # * +:ngrammer+: Proc for generating ngrams.
+    # * +reader+: Proc for turning opaque items into strings.
+    # * +normalizer+: Proc for normalizing strings.
+    # * +ngrammer+: Proc for generating ngrams.
     def initialize(options = {})
       @options = options
 

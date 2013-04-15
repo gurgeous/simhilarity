@@ -4,13 +4,13 @@ module Simhilarity
   # Internal wrapper around opaque items from user. This mostly exists
   # to cache stuff that's expensive, like the ngrams.
   class Element
-    # Owner for this guy.
+    # matcher that owns this guy
     attr_reader :matcher
 
-    # Opaque object from the user.
+    # opaque object from the user
     attr_reader :opaque
 
-    def initialize(matcher, opaque)
+    def initialize(matcher, opaque) #:nodoc:
       @matcher = matcher
       @opaque = opaque
     end
@@ -33,7 +33,8 @@ module Simhilarity
       @ngrams_sum ||= matcher.ngrams_sum(ngrams)
     end
 
-    # Generate a list of Candidates from +haystack+.
+    # Generate a list of Candidates from +haystack+. Candidates are
+    # generated for haystack items that have enough ngram overlaps.
     def candidates(haystack)
       ngrams_set = Set.new(ngrams)
       list = haystack.select { |i| is_candidate?(ngrams_set, i) }
@@ -41,11 +42,11 @@ module Simhilarity
       list
     end
 
-    def to_s
+    def to_s #:nodoc:
       str
     end
 
-    def inspect
+    def inspect #:nodoc:
       str.inspect
     end
 
