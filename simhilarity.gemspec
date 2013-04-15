@@ -8,8 +8,8 @@ Gem::Specification.new do |s|
   s.authors     = ["Adam Doppelt"]
   s.email       = ["amd@gurge.com"]
   s.homepage    = "http://github.com/gurgeous/simhilarity"
-  s.summary     = "Simhilarity - measure text similarity using weighted ngrams."
-  s.description = "Measure text similarity using weighted ngrams."
+  s.summary     = "Simhilarity - measure text similarity using frequency weighted ngrams."
+  s.description = "Measure text similarity using frequency weighted ngrams."
 
   s.rubyforge_project = "simhilarity"
 
