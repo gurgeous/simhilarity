@@ -1,0 +1,68 @@
+#!/usr/bin/env ruby
+
+# in lieu of -w, since we're using env to startup
+$VERBOSE = true
+
+require "optparse"
+require "simhilarity"
+
+class Main
+  def initialize(options = {})
+    # load
+    needle   = File.readlines(options[:needle]).map(&:chomp)
+    haystack = File.readlines(options[:haystack]).map(&:chomp)
+
+    # match
+    tm = Time.now
+    matcher = Simhilarity::Bulk.new
+    matches = matcher.matches(needle, haystack)
+    $stderr.printf("Simhilarity finished in %.3fs.\n\n", Time.now - tm)
+
+    # now report
+    len = needle.map(&:length).max
+    len = 35 if len > 35
+    fmt = "%4.2f %-#{len}s %-#{len}s\n"
+    matches.each do |n, h, score|
+      printf(fmt, score, n, h)
+    end
+  end
+end
+
+
+
+#
+# parse command line
+#
+
+options = { }
+
+opt = OptionParser.new do |o|
+  o.banner = "Usage: simhilarity <needle_file> <haystack_file>"
+  o.on_tail("-h", "--help", "print this help text") do
+    puts opt
+    exit 0
+  end
+end
+begin
+  opt.parse!
+rescue OptionParser::InvalidOption, OptionParser::MissingArgument => e
+  puts e
+  puts opt
+  exit 1
+end
+
+# mandatory args
+if ARGV.length != 2
+  puts opt
+  exit 1
+end
+options[:needle] = ARGV[0]
+options[:haystack] = ARGV[1]
+%w(needle haystack).map(&:to_sym).each do |i|
+  if !File.exists?(options[i])
+    puts "error: #{i.capitalize} file #{options[i].inspect} doesn't exist."
+    exit 1
+  end
+end
+
+Main.new(options)
