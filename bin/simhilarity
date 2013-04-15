@@ -3,6 +3,7 @@
 # in lieu of -w, since we're using env to startup
 $VERBOSE = true
 
+require "csv"
 require "optparse"
 require "simhilarity"
 
@@ -19,11 +20,10 @@ class Main
     $stderr.printf("Simhilarity finished in %.3fs.\n\n", Time.now - tm)
 
     # now report
-    len = needle.map(&:length).max
-    len = 35 if len > 35
-    fmt = "%4.2f %-#{len}s %-#{len}s\n"
+    csv = CSV.new($stdout)
+    csv << %w(score needle haystack)
     matches.each do |n, h, score|
-      printf(fmt, score, n, h)
+      csv << [sprintf("%4.3f", score), n, h]
     end
   end
 end
@@ -37,7 +37,14 @@ end
 options = { }
 
 opt = OptionParser.new do |o|
-  o.banner = "Usage: simhilarity <needle_file> <haystack_file>"
+  o.banner = <<EOF
+simhilarity matches lines of text between needle_file and
+haystack_file, then prints a report. Potential matches are scored
+using frequency weighted ngrams.
+
+Usage: simhilarity <needle_file> <haystack_file>
+EOF
+
   o.on_tail("-h", "--help", "print this help text") do
     puts opt
     exit 0
