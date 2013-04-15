@@ -1,9 +1,9 @@
 require "set"
 
 module Simhilarity
-  # Match a set of needle items against a set of haystack items, in
-  # bulk. For example, this is used if you want to match 50 new
-  # addresses against your database of 1,000 known addresses.
+  # Match a set of needles against a haystack, in bulk. For example,
+  # this is used if you want to match 50 new addresses against your
+  # database of 1,000 known addresses.
   class Bulk < Matcher
     # Initialize a new Bulk matcher. See Matcher#initialize. Bulk adds
     # these options:
@@ -17,19 +17,19 @@ module Simhilarity
       options[:candidate_overlaps] ||= 3
     end
 
-    # Match each item in +needle+ to an item in +haystack+. Returns an
-    # array of tuples, <tt>[needle, haystack, score]</tt>. Scores
+    # Match each item in +needles+ to an item in +haystack+. Returns
+    # an array of tuples, <tt>[needle, haystack, score]</tt>. Scores
     # range from 0 to 1, with 1 being a perfect match and 0 being a
     # terrible match.
-    def matches(needle, haystack)
-      needle = import_list(needle)
+    def matches(needles, haystack)
+      needles = import_list(needles)
       haystack = import_list(haystack)
 
       # set the corpus, to generate weights
-      self.corpus = (needle + haystack)
+      self.corpus = (needles + haystack)
 
       # get set of candidates
-      candidates = needle.map { |i| i.candidates(haystack) }.flatten
+      candidates = needles.map { |i| i.candidates(haystack) }.flatten
       candidates = candidates.sort_by { |i| -i.score }
 
       # walk candidates by score, pick winners
@@ -46,7 +46,7 @@ module Simhilarity
       needle_to_winner = { }
       winners.each { |i| needle_to_winner[i.a] = i }
 
-      needle.map do |i|
+      needles.map do |i|
         if candidate = needle_to_winner[i]
           [ i.opaque, candidate.b.opaque, candidate.score ]
         end
