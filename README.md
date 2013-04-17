@@ -88,17 +88,16 @@ When looking at simhilarity's speed, there are two important aspects to consider
 * **picking candidates** - how long does it take to pick decent candidates out of all the potential string pairs?
 * **matching** - once candidates are identified, how long does it take to score them?
 
-Here are some numbers from my i5 3ghz, for a test dataset consisting of 500 needles and 10,000 haystacks.
-
 #### Picking Candidates
 
-There are three different methods for picking candidates - see [options](#options) for a detailed explanation. Simhash runs very quickly and does an excellent job of identifying candidates. Ngrams is slower and returns huge numbers of candidates, slowing down matching. All checks all candidates - it's a pig.
+There are three different methods for picking candidates - see [options](#options) for a detailed explanation. Here are some numbers from my i5 3ghz, for a test dataset consisting of 500 needles and 10,000 haystacks.
+
 
 ```
 method      time   candidates returned
 simhash 5   4s     3,500
 simhash 6   7s     5,000
-simhash 7   9s     10,000
+simhash 7   9s     10,000   (this is the default)
 simhash 8   12s    25,000
 simhash 9   13s    60,000
 
@@ -111,8 +110,7 @@ all         3.9s   5,000,000
 
 #### Matching
 
-Once candidates are identified, the string pairs are scored and
-winners are picked out. Scoring is O(n):
+Once candidates are identified, the string pairs are scored and winners are picked out. Scoring is O(n). On my i5 3ghz:
 
 ```
 candidates   time
@@ -132,16 +130,16 @@ There are a few ways to configure simhilarity:
 
 * **candidates** - controls how candidates are picked from the complete set of all string pairs. We want to avoid looking at all string pairs, because that's quite expensive for large datasets. On the other hand, if we examine too few we might miss some of the best matches. A conundrum. There are three different settings:
 
-  `:all` - all pairs are examined. This is completely braindead and very slow for large datasets.
+  `:simhash` - generate a weighted [simhash](http://matpalm.com/resemblance/simhash/) for each string, then iterate the needles and look for "nearby" haystack simhashes using a [bktree](https://github.com/threedaymonk/bktree). Simhashes are compared using the [hamming distance](http://en.wikipedia.org/wiki/Hamming_distance). If the hamming distance between the simhashes <= `options[:simhash_max_hamming]`, the pair becomes a candidate. The default max hamming distance is 7 - see [benchmarks](#benchmarks) to get a sense for how different values perform.
 
   `:ngrams` - for each pair of strings, count the number of ngrams they have in common. If the overlap is >= `options[:ngram_overlaps]`, the pair becomes a candidate. The default minimum number of overlaps is 3 - see [benchmarks](#benchmarks) to get a sense for how different values perform.
 
-  `:simhash` - generate a weighted [simhash](http://matpalm.com/resemblance/simhash/) for each string, then iterate the needles and look for "nearby" haystack simhashes using a [bktree](https://github.com/threedaymonk/bktree). Simhashes are compared using the [hamming distance](http://en.wikipedia.org/wiki/Hamming_distance). If the hamming distance between the simhashes <= `options[:simhash_max_hamming]`, the pair becomes a candidate. The default max hamming distance is 7 - see [benchmarks](#benchmarks) to get a sense for how different values perform.
+  `:all` - all pairs are examined. This is completely braindead and very slow for large datasets.
 
-  Simhash works quite well for my test dataset, but there's no reason not to use `:ngrams` or even `:all` for small data sets. In fact, that's what simhilarity does by default - if you use a small dataset it defaults to `:all`, otherwise it uses `:simhash`. Some examples:
+  Simhash works great, but there's no reason not to use `:ngrams` or even `:all` for small data sets. In fact, that's what simhilarity does by default - if you use a small dataset (needle * haystack < 200,000) it defaults to `:all`, otherwise it uses `:simhash`. Some examples:
 
   ```ruby
-  Simhilarity::Bulk.new  # defaults to :all or :simhash based on size
+  Simhilarity::Bulk.new  # defaults to :all or :simhash based on size<
   Simhilarity::Bulk.new(candidates: :simhash)
   Simhilarity::Bulk.new(candidates: :simhash, simhash_max_hamming: 8)
   Simhilarity::Bulk.new(candidates: :ngrams, ngram_overlaps: 4)
