@@ -17,6 +17,13 @@ module Simhilarity
     # Matcher#ngrams for the default implementation.
     attr_accessor :ngrammer
 
+    # Ngram frequency weights from the corpus, or 1 if the ngram isn't
+    # in the corpus.
+    attr_accessor :freq
+
+    # The current corpus.
+    attr_accessor :corpus
+
     # Create a new Matcher matcher. Options include:
     #
     # * +reader+: Proc for turning opaque items into strings.
@@ -30,12 +37,14 @@ module Simhilarity
       self.normalizer = options[:normalizer]
       self.ngrammer = options[:ngrammer]
 
-      @weights = Hash.new(1)
+      self.freq = Hash.new(1)
     end
 
-    # Set the corpus. This calculates ngram weights for future
+    # Set the corpus. This calculates ngram frequencies for future
     # scoring.
     def corpus=(corpus)
+      @corpus = corpus
+
       # calculate ngram counts for the corpus
       counts = Hash.new(0)
       import_list(corpus).each do |element|
@@ -45,9 +54,10 @@ module Simhilarity
       end
 
       # turn counts into inverse frequencies
+      self.freq = Hash.new(1)
       total = counts.values.inject(&:+).to_f
       counts.each do |ngram, count|
-        @weights[ngram] = total / count
+        self.freq[ngram] = total / count
       end
     end
 
@@ -84,15 +94,22 @@ module Simhilarity
       end
 
       # two letter ngrams (bigrams)
-      bigrams = str.each_char.each_cons(2).map(&:join)
+      ngrams = str.each_char.each_cons(2).map(&:join)
       # runs of digits
-      digits = str.scan(/\d+/)
-      (bigrams + digits).uniq
+      ngrams += str.scan(/\d+/)
+      ngrams.uniq
     end
 
-    # Sum up the weight of the +ngrams+ using @weights.
+    # Sum up the frequency weights of the +ngrams+.
     def ngrams_sum(ngrams)
-      ngrams.map { |i| @weights[i] }.inject(&:+)
+      ngrams.map { |i| @freq[i] }.inject(&:+) || 0
+    end
+
+    # Calculate the frequency weighted
+    # simhash[http://matpalm.com/resemblance/simhash/] of the
+    # +ngrams+.
+    def simhash(ngrams)
+      Bits.simhash32(freq, ngrams)
     end
 
     def inspect

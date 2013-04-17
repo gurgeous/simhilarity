@@ -6,6 +6,10 @@ require "simhilarity"
 require "test/unit"
 
 class Tests < Test::Unit::TestCase
+  #
+  # helpers
+  #
+
   def setup
     @matcher = Simhilarity::Matcher.new
   end
@@ -24,8 +28,35 @@ class Tests < Test::Unit::TestCase
     sample
   end
 
+  def assert_bulk_candidates(candidates, percent)
+    sample = self.sample
+
+    # match, with benchmark
+    output = nil
+    Benchmark.bm(10) do |bm|
+      bm.report("bulk") do
+        matcher = Simhilarity::Bulk.new(candidates: candidates)
+        output = matcher.matches(sample.needle, sample.haystack)
+      end
+    end
+
+    # what percent of matches are correct?
+    correct = output.select { |n, h, score| sample.matches[n] == h }
+    correct = correct.length.to_f / sample.needle.length
+
+    # for debugging
+    # printf("%% correct: %.3f\n", correct)
+    # output.each do |n, h, score|
+    #   good = sample.matches[n] == h
+    #   printf("%2s %4.2f %-35s %-35s\n", good ? "" : "xx", score || 0, n, h)
+    # end
+
+    assert((correct - percent).abs < 0.001, "percent #{correct} != #{percent}")
+  end
+
+
   #
-  # procs
+  # tests
   #
 
   def test_read
@@ -71,19 +102,8 @@ class Tests < Test::Unit::TestCase
   end
 
   def test_bulk
-    sample = self.sample
-
-    # match, with benchmark
-    output = nil
-    Benchmark.bm do |bm|
-      bm.report "match" do
-        output = Simhilarity::Bulk.new.matches(sample.needle, sample.haystack)
-      end
-    end
-
-    # what percent of matches are correct?
-    correct = output.select { |n, h, score| sample.matches[n] == h }
-    correct = correct.length.to_f / sample.needle.length
-    assert (correct - 0.974).abs < 0.001
+    assert_bulk_candidates(:all, 0.974)
+    assert_bulk_candidates(:ngrams, 0.974)
+    assert_bulk_candidates(:simhash, 0.949)
   end
 end

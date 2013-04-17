@@ -1,0 +1,138 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+
+require "awesome_print"
+require "csv"
+require "ostruct"
+require "simhilarity"
+
+#
+# This is a test harness for measuring the speed and accuracy of the
+# different searchers. Feel free to ignore.
+#
+
+#
+# Results on an i5 3ghz, with 500 needles and 10,000 haystacks:
+#
+#
+
+class Harness
+  def initialize
+    @matcher = Simhilarity::Bulk.new
+
+    # load data
+    $stderr.puts "Loading..."
+    @data = dataset_large
+    @data.needles  = @data.needles.map  { |i| @matcher.send(:element_for, i) }
+    @data.haystack = @data.haystack.map { |i| @matcher.send(:element_for, i) }
+    @matcher.corpus = @data.needles + @data.haystack
+
+    # exclude this initialization from our benchmarks
+    @matcher.corpus.each(&:simhash)
+
+    $stderr.puts "Harness using needles/haystack = #{@data.needles.length}/#{@data.haystack.length}..."
+    run
+  end
+
+  def dataset_large
+    needles  = File.readlines("large_needles.txt").map(&:chomp)
+    haystack = File.readlines("large_haystack.txt").map(&:chomp)
+    OpenStruct.new(needles: needles, haystack: haystack)
+  end
+
+  def dataset_small
+    needles, haystack, matches = [], [], {}
+    CSV.read("sample.csv").each do |cols|
+      n, h = *cols
+      needles << n if n
+      haystack << h if h
+      matches[n] = h if n && h
+    end
+    OpenStruct.new(needles: needles, haystack: haystack, matches: matches)
+  end
+
+  # all
+  # ngrams:  5,4,3
+  # simhash: 5,6,7,8,9
+
+  #
+  # compare the various candidate methods
+  #
+
+  def run
+    # header
+    cols = [:title, :candidates, :s30, :s40, :s50, :c_tm, :s_tm, :correct]
+    puts cols.join("\t")
+
+    # simhash: 5..9
+    @matcher.options[:candidates] = :simhash
+    5.upto(9).each do |i|
+      @matcher.options[:simhash_max_hamming] = i
+      report("simhash #{i}")
+    end
+
+    # ngrams: 5..3
+    @matcher.options[:candidates] = :ngrams
+    5.downto(3).each do |i|
+      @matcher.options[:ngram_overlaps] = i
+      report("ngrams #{i}")
+    end
+
+    # all
+    @matcher.options[:candidates] = :all
+    report("all")
+  end
+
+
+  def report(title)
+    # candidates
+    tm1 = Time.now
+    candidates = @matcher.send(:candidates, @data.needles, @data.haystack)
+    tm1 = Time.now - tm1
+
+    # winners
+    tm2 = Time.now
+    winners = @matcher.send(:winners, @data.needles, candidates)
+    tm2 = Time.now - tm2
+    winners = winners.sort_by { |n, h, score| -(score || 0) }
+
+    s30 = winners.count { |n, h, score| score && score > 0.3 }
+    s40 = winners.count { |n, h, score| score && score > 0.4 }
+    s50 = winners.count { |n, h, score| score && score > 0.5 }
+
+    tm1 = sprintf("%.3f", tm1)
+    tm2 = sprintf("%.3f", tm2)
+
+    cols = [title, candidates.length, s30, s40, s50, tm1, tm2]
+    if @data.matches
+      correct = winners.select { |n, h, score| @data.matches[n] == h }
+      correct = correct.length.to_f / @data.needles.length
+      correct = sprintf("%.3f", correct)
+      cols << correct
+    end
+    puts cols.join("\t")
+    $stdout.flush
+  end
+
+  def dump_results(winners)
+    high_quality = winners.select { |n, h, score| score && score > 0.5 }
+    full report
+    high_quality.each do |n, h, score|
+      printf("%4.2f %-35s %-35s\n", score || 0, n, h)
+    end
+
+    # which high quality matches were added?
+    if @last
+      puts
+      added = high_quality - @last
+      added.each do |n, h, score|
+        printf("%4.2f %-35s %-35s\n", score || 0, n, h)
+      end
+    end
+    @last = high_quality
+  end
+end
+
+Dir.chdir(File.expand_path("../", __FILE__))
+Harness.new

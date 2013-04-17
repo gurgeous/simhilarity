@@ -1,4 +1,3 @@
-$LOAD_PATH << File.expand_path("../lib", __FILE__)
 require "simhilarity/version"
 
 Gem::Specification.new do |s|
@@ -13,6 +12,8 @@ Gem::Specification.new do |s|
   s.description = "Measure text similarity using frequency weighted ngrams."
 
   s.rubyforge_project = "simhilarity"
+
+  s.add_runtime_dependency "bk"
 
   s.add_development_dependency("awesome_print")
   s.add_development_dependency("rake")

@@ -67,7 +67,7 @@ It will print out the best matches between needle and haystack in CSV format.
 
 ### Simhilarity::Bulk
 
-To use simhilarity from code, create a `Bulk` and call `matches(needles, haystack)`. It'll return an array of tuples, `[score, needle, haystack]`. By default, simhilarity assumes that needles and haystack are arrays of strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See **Options**, below.
+To use simhilarity from code, create a `Bulk` and call `matches(needles, haystack)`. It'll return an array of tuples, `[needle, haystack, score]`. By default, simhilarity assumes that needles and haystack are arrays of strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See **Options**, below.
 
 ### Simhilarity::Single
 
