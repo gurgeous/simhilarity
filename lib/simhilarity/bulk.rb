@@ -6,6 +6,11 @@ module Simhilarity
   # this is used if you want to match 50 new addresses against your
   # database of 1,000 known addresses.
   class Bulk < Matcher
+    # default minimum number # of ngram overlaps with :ngrams
+    DEFAULT_NGRAM_OVERLAPS = 3
+    # default maximum hamming distance with :simhash
+    DEFAULT_SIMHASH_MAX_HAMMING = 7
+
     # Initialize a new Bulk matcher. See Matcher#initialize. Bulk adds
     # these options:
     #
@@ -25,14 +30,22 @@ module Simhilarity
     # terrible match.
     def matches(needles, haystack)
       # create Elements
-      needles = import_list(needles)
-      haystack = import_list(haystack)
+      if needles == haystack
+        needles = haystack = import_list(needles)
 
-      # set the corpus, to generate frequency weights
-      self.corpus = (needles + haystack)
+        # set the corpus, to generate frequency weights
+        self.corpus = needles
+      else
+        needles = import_list(needles)
+        haystack = import_list(haystack)
+
+        # set the corpus, to generate frequency weights
+        self.corpus = (needles + haystack)
+      end
 
       # get candidate matches
       candidates = candidates(needles, haystack)
+      vputs " got #{candidates.length} candidates."
 
       # pick winners
       winners(needles, candidates)
@@ -45,12 +58,22 @@ module Simhilarity
     def candidates(needles, haystack)
       method = options[:candidates]
       method ||= (needles.length * haystack.length < 200000) ? :all : :simhash
+
+      case method
+      when /^ngrams=(\d+)$/
+        method = :ngrams
+        options[:ngram_overlaps] = $1.to_i
+      when /^simhash=(\d+)$/
+        method = :simhash
+        options[:simhash_max_hamming] = $1.to_i
+      end
+
       method = "candidates_#{method}".to_sym
       if !respond_to?(method)
         raise "unsupported options[:candidates] #{options[:candidates].inspect}"
       end
 
-      vputs "Using #{method}..."
+      vputs "Using #{method} with needles=#{needles.length} haystack=#{haystack.length}..."
       self.send(method, needles, haystack).map do |n, h|
         Candidate.new(self, n, h)
       end
@@ -64,10 +87,10 @@ module Simhilarity
     # Return candidates that overlap with three or more matching
     # ngrams. Only works for small datasets.
     def candidates_ngrams(needles, haystack)
-      ngram_overlaps = options[:ngram_overlaps] || 3
+      ngram_overlaps = options[:ngram_overlaps] || DEFAULT_NGRAM_OVERLAPS
 
       candidates = []
-      veach(needles, " ngrams") do |n|
+      veach(" ngrams #{ngram_overlaps}", needles) do |n|
         ngrams_set = Set.new(n.ngrams)
         haystack.each do |h|
           count = 0
@@ -87,18 +110,18 @@ module Simhilarity
     # Find candidates that are close based on hamming distance between
     # the simhashes.
     def candidates_simhash(needles, haystack)
-      max_hamming = options[:simhash_max_hamming] || 7
+      max_hamming = options[:simhash_max_hamming] || DEFAULT_SIMHASH_MAX_HAMMING
 
       # calculate this first so we get a nice progress bar
-      veach(corpus, " simhash") { |i| i.simhash }
+      veach(" simhash", corpus) { |i| i.simhash }
 
       # build the bk tree
       bk = BK::Tree.new(lambda { |a, b| Bits.hamming32(a.simhash, b.simhash) })
-      veach(haystack, " bktree") { |i| bk.add(i) }
+      veach(" bktree", haystack) { |i| bk.add(i) }
 
       # search for candidates with low hamming distance
       candidates = []
-      veach(needles, " hamming") do |n|
+      veach(" hamming #{max_hamming}", needles) do |n|
         bk.query(n, max_hamming).each do |h, distance|
           candidates << [n, h]
         end
@@ -109,7 +132,7 @@ module Simhilarity
     # walk candidates by score, pick winners
     def winners(needles, candidates)
       # calculate this first so we get a nice progress bar
-      veach(candidates, "Scoring") { |i| i.score }
+      veach("Scoring", candidates) { |i| i.score }
 
       # score the candidates
       candidates = candidates.sort_by { |i| -i.score }

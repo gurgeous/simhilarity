@@ -51,6 +51,9 @@ EOF
   o.on("-v", "--verbose", "enable verbose/progress output") do |f|
     options[:verbose] = true
   end
+  o.on("-c", "--candidates [CANDIDATES]", "set candidates search method") do |f|
+    options[:candidates] = f
+  end
   o.on_tail("-h", "--help", "print this help text") do
     puts opt
     exit 0

@@ -11,6 +11,7 @@ class Tests < Test::Unit::TestCase
   #
 
   def setup
+    Dir.chdir(File.expand_path("../", __FILE__))
     @matcher = Simhilarity::Matcher.new
   end
 
@@ -19,7 +20,7 @@ class Tests < Test::Unit::TestCase
   # hash mapping from needle to haystack for known good matches.
   def sample
     sample = OpenStruct.new(needle: [], haystack: [], matches: { })
-    CSV.read(File.expand_path("../sample.csv", __FILE__)).each do |cols|
+    CSV.read("sample.csv").each do |cols|
       n, h = *cols
       sample.needle << n if n
       sample.haystack << h if h
@@ -34,7 +35,7 @@ class Tests < Test::Unit::TestCase
     # match, with benchmark
     output = nil
     Benchmark.bm(10) do |bm|
-      bm.report("bulk") do
+      bm.report(candidates.to_s) do
         matcher = Simhilarity::Bulk.new(candidates: candidates)
         output = matcher.matches(sample.needle, sample.haystack)
       end
@@ -54,6 +55,10 @@ class Tests < Test::Unit::TestCase
     assert((correct - percent).abs < 0.001, "percent #{correct} != #{percent}")
   end
 
+  def assert_system(cmd)
+    system("#{cmd} > /dev/null 2>&1")
+    assert($? == 0, "#{cmd} failed")
+  end
 
   #
   # tests
@@ -98,12 +103,23 @@ class Tests < Test::Unit::TestCase
 
   def test_single
     score = Simhilarity::Single.new.score("hello world", "hi worlds")
-    assert (score - 0.556).abs < 0.001
+    assert (score - 0.556).abs < 0.001, "test_single percent was wrong!"
   end
 
   def test_bulk
     assert_bulk_candidates(:all, 0.974)
     assert_bulk_candidates(:ngrams, 0.974)
     assert_bulk_candidates(:simhash, 0.949)
+  end
+
+  def test_bin
+    bin = "../bin/simhilarity"
+    assert_system("#{bin} identity.txt identity.txt")
+    assert_system("#{bin} -v identity.txt identity.txt")
+    assert_system("#{bin} --candidates simhash identity.txt identity.txt")
+    assert_system("#{bin} --candidates simhash=3 identity.txt identity.txt")
+    assert_system("#{bin} --candidates ngrams identity.txt identity.txt")
+    assert_system("#{bin} --candidates ngrams=3 identity.txt identity.txt")
+    assert_system("#{bin} --candidates all identity.txt identity.txt")
   end
 end

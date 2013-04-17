@@ -47,7 +47,7 @@ module Simhilarity
 
       # calculate ngram counts for the corpus
       counts = Hash.new(0)
-      import_list(corpus).each do |element|
+      veach("Corpus", import_list(corpus)) do |element|
         element.ngrams.each do |ngram|
           counts[ngram] += 1
         end
@@ -143,7 +143,7 @@ module Simhilarity
     end
 
     # Like each, but with a progress bar if options[:verbose]
-    def veach(array, title, &block)
+    def veach(title, array, &block)
       if !options[:verbose]
         array.each do |i|
           yield(i)
