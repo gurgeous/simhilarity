@@ -58,16 +58,13 @@ The gem includes an executable called `simhilarity`. For example:
 
 ```sh
 $ simhilarity needles.txt haystack.txt
-
-simhilarity finished in 1.221s.
-
 score,needle,haystack
 0.900,1 Quail Street,1 Quail
 1.000,103 Oceanwood,103 Oceanwood
 ...
 ```
 
-It will print out the best matches between needle and haystack in CSV format. Use `simhilarity --verbose` to look at pretty progress bars while it's running.
+It will print out the best matches between needle and haystack in CSV format. Use `simhilarity --verbose` to look at pretty progress bars while it's running. Use --candidates to customize the candidates selection method, which will dramatically affect performance for large data sets.
 
 ### Simhilarity::Bulk
 
