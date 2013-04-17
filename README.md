@@ -56,7 +56,7 @@ Note that the final match has the lowest score, and is incorrect!
 
 The gem includes an executable called `simhilarity`. For example:
 
-```
+```sh
 $ simhilarity needles.txt haystack.txt
 
 simhilarity finished in 1.221s.
@@ -145,6 +145,15 @@ There are a few ways to configure simhilarity:
   Simhilarity::Bulk.new(candidates: :ngrams, ngram_overlaps: 4)
   ```
 
+  or:
+
+  ```
+  $ simhilarity --candidates simhash   needles.txt haystack.txt
+  $ simhilarity --candidates simhash=8 needles.txt haystack.txt
+  $ simhilarity --candidates ngrams    needles.txt haystack.txt
+  $ simhilarity --candidates ngrams=4  needles.txt haystack.txt
+  ```
+
 * **reader** - proc for converting your opaque objects into strings. Set this to use something other than strings for source data. For example, if you want to match author names between ActiveRecord book objects:
 
    ```ruby
@@ -156,4 +165,4 @@ There are a few ways to configure simhilarity:
 
 * **ngrammer** - proc for converting normalized strings into ngrams. The default ngrammer pulls out bigrams and runs of digits, which is perfect for matching names and addresses.
 
-* **verbose** - if true, show progress while simhilarity is working. Great for the impatient.
+* **verbose** - if true, show progress while simhilarity is working. Great for the impatient. Use --verbose from the command line.
