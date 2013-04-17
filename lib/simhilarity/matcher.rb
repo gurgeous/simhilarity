@@ -1,3 +1,5 @@
+require "progressbar"
+
 module Simhilarity
   # Abstract superclass for matching. Mainly a container for options, corpus, etc.
   class Matcher
@@ -114,7 +116,7 @@ module Simhilarity
       Bits.simhash32(freq, ngrams)
     end
 
-    def inspect
+    def inspect #:nodoc:
       "Matcher"
     end
 
@@ -132,6 +134,30 @@ module Simhilarity
     # Turn a user's opaque item into an Element.
     def element_for(opaque)
       Element.new(self, opaque)
+    end
+
+    # Puts if options[:verbose]
+    def vputs(s)
+      $stderr.puts s if options[:verbose]
+    end
+
+    # Like each, but with a progress bar if options[:verbose]
+    def veach(array, title, &block)
+      if !options[:verbose]
+        array.each do |i|
+          yield(i)
+        end
+      else
+        begin
+          pb = ProgressBar.new(title, array.length)
+          array.each do |i|
+            yield(i)
+            pb.inc
+          end
+        ensure
+          pb.finish
+        end
+      end
     end
   end
 end

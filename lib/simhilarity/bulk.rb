@@ -28,8 +28,10 @@ module Simhilarity
 
       # set the corpus, to generate frequency weights
       self.corpus = (needles + haystack)
+
       # get candidate matches
       candidates = candidates(needles, haystack)
+
       # pick winners
       winners(needles, candidates)
     end
@@ -45,6 +47,8 @@ module Simhilarity
       if !respond_to?(method)
         raise "unsupported options[:candidates] #{options[:candidates].inspect}"
       end
+
+      vputs "Using #{method}..."
       self.send(method, needles, haystack).map do |n, h|
         Candidate.new(self, n, h)
       end
@@ -61,7 +65,7 @@ module Simhilarity
       ngram_overlaps = options[:ngram_overlaps] || 3
 
       candidates = []
-      needles.each do |n|
+      veach(needles, " ngrams") do |n|
         ngrams_set = Set.new(n.ngrams)
         haystack.each do |h|
           count = 0
@@ -83,11 +87,16 @@ module Simhilarity
     def candidates_simhash(needles, haystack)
       max_hamming = options[:simhash_max_hamming] || 7
 
-      bk = BK::Tree.new(lambda { |a, b| Bits.hamming32(a.simhash, b.simhash) })
-      haystack.each { |i| bk.add(i) }
+      # calculate this first so we get a nice progress bar
+      veach(corpus, " simhash") { |i| i.simhash }
 
+      # build the bk tree
+      bk = BK::Tree.new(lambda { |a, b| Bits.hamming32(a.simhash, b.simhash) })
+      veach(haystack, " bktree") { |i| bk.add(i) }
+
+      # search for candidates with low hamming distance
       candidates = []
-      needles.each do |n|
+      veach(needles, " hamming") do |n|
         bk.query(n, max_hamming).each do |h, distance|
           candidates << [n, h]
         end
@@ -97,6 +106,9 @@ module Simhilarity
 
     # walk candidates by score, pick winners
     def winners(needles, candidates)
+      # calculate this first so we get a nice progress bar
+      veach(candidates, "Scoring") { |i| i.score }
+
       # score the candidates
       candidates = candidates.sort_by { |i| -i.score }
 
