@@ -1,3 +1,5 @@
+require "digest"
+
 module Simhilarity
   module Bits
     # Calculate the {hamming

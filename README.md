@@ -1,25 +1,29 @@
 # Welcome to simhilarity
 
-Simhilarity is a small gem for quickly matching up text strings that are similar but not identical. It's fast for small datasets. On my lowly machine it takes 1.2s to match 40 strings against 2500 potential matches.
+Simhilarity is a gem for quickly matching up text strings that are similar but not identical. Here is how it works:
 
-Here's how it works:
-
-1. Normalize strings. Downcase, remove non-alpha, etc. For example:
+1. Normalize strings. Downcase, remove non-alpha, etc:
 
    ```ruby
    normalize("Hello,  WORLD!") => "hello world"
    ```
-1. Calculate [ngrams](http://en.wikipedia.org/wiki/N-gram) from strings. Specifically, it creates bigrams (2 character ngrams) and also creates an ngram for each sequence of digits in the string. For example:
+
+1. Calculate [ngrams](http://en.wikipedia.org/wiki/N-gram) from strings. Specifically, it creates bigrams (2 character ngrams) and also creates an ngram for each sequence of digits in the string:
 
    ```ruby
                         # bigrams                        # digits
    ngrams("hi 123") => ["hi", "i ", " 1", "12", "23"] + ["123"]
    ```
+
 1. Calculate frequency of ngrams in the corpus.
-1. Score pairs of strings by measuring ngram overlap (with frequency weighting), using the [dice coefficient](http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient).
+
+1. Select pairs of strings that might be matches. These are called **candidates**, and there are a few different ways they are chosen - see [options](#options). Simhilarity will try to pick the best method based on the size of your data set.
+
+1. Score candidates by measuring ngram overlap (with frequency weighting), using the [dice coefficient](http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient).
+
 1. For each input string, return the match with the highest score.
 
-Here's output from a sample run:
+Here is output from a sample run:
 
 ```
 score   needle                                      haystack
@@ -67,17 +71,81 @@ It will print out the best matches between needle and haystack in CSV format.
 
 ### Simhilarity::Bulk
 
-To use simhilarity from code, create a `Bulk` and call `matches(needles, haystack)`. It'll return an array of tuples, `[needle, haystack, score]`. By default, simhilarity assumes that needles and haystack are arrays of strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See **Options**, below.
+To use simhilarity from code, create a `Bulk` and call `matches(needles, haystack)`. It'll return an array of tuples, `[needle, haystack, score]`. By default, simhilarity assumes that needles and haystack are arrays of strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See [options](#options).
 
 ### Simhilarity::Single
 
-Sometimes it's useful to just calculate the score between two strings. For example, if you just want a title similarity measurement as part of some larger analysis between two books. Create a `Single` and call `score(a, b)` to measure similarity between those two items. By default, simhilarity assumes that needle and haystack are strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See **Options**, below.
+Sometimes it's useful to just calculate the score between two strings. For example, if you just want a title similarity measurement as part of some larger analysis between two books. Create a `Single` and call `score(a, b)` to measure similarity between those two items. By default, simhilarity assumes that needle and haystack are strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See [options](#options).
 
 Important note: For best results with `Single`, set the corpus so that simhilarity can calculate ngram frequencies. This can dramatically improve accuracy. `Bulk` will do this automatically because it has access to the corpus, but `Single` doesn't. Call `corpus=` manually when using `Single`.
 
+<a name="benchmarks"/>
+
+## Benchmarks
+
+When looking at simhilarity's speed, there are two important aspects to consider:
+
+* **picking candidates** - how long does it take to pick decent candidates out of all the potential string pairs?
+* **matching** - once candidates are identified, how long does it take to score them?
+
+Here are some numbers from my i5 3ghz, for a test dataset consisting of 500 needles and 10,000 haystacks.
+
+#### Picking Candidates
+
+There are three different methods for picking candidates - see [options](#options) for a detailed explanation. Simhash runs very quickly and does an excellent job of identifying candidates. Ngrams is slower and returns huge numbers of candidates, slowing down matching. All checks all candidates. It's a pig.
+
+```
+method      time   candidates returned
+simhash 5   4s     3,500
+simhash 6   7s     5,000
+simhash 7   9s     10,000
+simhash 8   12s    25,000
+simhash 9   13s    60,000
+
+ngrams 5    46s    1,000,000
+ngrams 4    44s    1,500,000
+ngrams 3    40s    2,100,000
+
+all         3.9s   5,000,000
+```
+
+#### Matching
+
+Once candidates are identified, the string pairs are scored and
+winners are picked out. This is O(n):
+
+```
+candidates   time
+25,000       1s
+60,000       2s
+1,000,000    35s
+5,000,000    190s
+```
+
+
+
+<a name="options"/>
+
 ## Options
 
-There are three major ways to customize simhilarity:
+There are four major ways to configure simhilarity:
+
+* **candidates** - controls how candidates are picked from the complete set of all string pairs. We want to avoid looking at all string pairs, because that's quite expensive for large datasets. On the other hand, if we examine too few we might miss some of the best matches. A conundrum. There are three different settings:
+
+  `:all` - all pairs are examined. This is completely braindead and very slow for large datasets.
+
+  `:ngrams` - for each pair of strings, count the number of ngrams they have in common. If the overlap is >= `options[:ngram_overlaps]`, the pair becomes a candidate. The default minimum number of overlaps is 3 - see [benchmarks](#benchmarks) to get a sense for how different values perform.
+
+  `:simhash` - generate a weighted [simhash](http://matpalm.com/resemblance/simhash/) for each string, then iterate the needles and look for "nearby" haystack simhashes using a [bktree](https://github.com/threedaymonk/bktree). Simhashes are compared using the [hamming distance](http://en.wikipedia.org/wiki/Hamming_distance). If the hamming distance between the simhashes <= `options[:simhash_max_hamming]`, the pair becomes a candidate. The default max hamming distance is 7 - see [benchmarks](#benchmarks) to get a sense for how different values perform.
+
+  Simhash works quite well for my test dataset, but there's no reason not to use `:ngrams` or even `:all` for small data sets. In fact, that's what simhilarity does by default - if you use a small dataset it defaults to `:all`, otherwise it uses `:simhash`. Some examples:
+
+  ```ruby
+  Simhilarity::Bulk.new  # defaults to :all or :simhash based on size
+  Simhilarity::Bulk.new(candidates: :simhash)
+  Simhilarity::Bulk.new(candidates: :simhash, simhash_max_hamming: 8)
+  Simhilarity::Bulk.new(candidates: :ngrams, ngram_overlaps: 4)
+  ```
 
 * **reader** - proc for converting your opaque objects into strings. Set this to use something other than strings for source data. For example, if you want to match author names between ActiveRecord book objects:
 
@@ -89,8 +157,3 @@ There are three major ways to customize simhilarity:
 * **normalizer** - proc for normalizing incoming strings. The default normalizer downcases, removes non-alphas, and strips whitespace.
 
 * **ngrammer** - proc for converting normalized strings into ngrams. The default ngrammer pulls out bigrams and runs of digits, which is perfect for matching names and addresses.
-
-## Limitations
-
-* Matching is O(n^2), since simhilarity calculates scores for every pair. For large datasets you should probably use [simhash](http://matpalm.com/resemblance/simhash/) instead of this gem.
-* Actually, simhilarity doesn't examine every pair. It only looks at pairs that overlap by three or more ngrams. This speeds things up, but can trip you up with edge cases that overlap poorly!

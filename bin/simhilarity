@@ -23,7 +23,7 @@ class Main
     csv = CSV.new($stdout)
     csv << %w(score needle haystack)
     matches.each do |n, h, score|
-      csv << [sprintf("%4.3f", score), n, h]
+      csv << [sprintf("%4.3f", score || 0), n, h]
     end
   end
 end

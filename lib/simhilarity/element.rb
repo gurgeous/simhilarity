@@ -33,6 +33,8 @@ module Simhilarity
       @ngrams_sum ||= matcher.ngrams_sum(ngrams)
     end
 
+    # Weighted simhash of +ngrams+ via Matcher#simhash. Lazily
+    # calculated.
     def simhash
       @simhash ||= matcher.simhash(ngrams)
     end

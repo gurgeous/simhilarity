@@ -21,9 +21,6 @@ module Simhilarity
     # in the corpus.
     attr_accessor :freq
 
-    # The current corpus.
-    attr_accessor :corpus
-
     # Create a new Matcher matcher. Options include:
     #
     # * +reader+: Proc for turning opaque items into strings.
@@ -40,7 +37,7 @@ module Simhilarity
       self.freq = Hash.new(1)
     end
 
-    # Set the corpus. This calculates ngram frequencies for future
+    # Set the corpus. Calculates ngram frequencies (#freq) for future
     # scoring.
     def corpus=(corpus)
       @corpus = corpus
@@ -59,6 +56,11 @@ module Simhilarity
       counts.each do |ngram, count|
         self.freq[ngram] = total / count
       end
+    end
+
+    # Returns the current corpus, or nil if unset.
+    def corpus
+      @corpus
     end
 
     # Turn an opaque item from the user into a string.
