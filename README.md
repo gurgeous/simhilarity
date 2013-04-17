@@ -67,7 +67,7 @@ score,needle,haystack
 ...
 ```
 
-It will print out the best matches between needle and haystack in CSV format.
+It will print out the best matches between needle and haystack in CSV format. Use `simhilarity --verbose` to look at pretty progress bars while it's running.
 
 ### Simhilarity::Bulk
 
@@ -92,7 +92,7 @@ Here are some numbers from my i5 3ghz, for a test dataset consisting of 500 need
 
 #### Picking Candidates
 
-There are three different methods for picking candidates - see [options](#options) for a detailed explanation. Simhash runs very quickly and does an excellent job of identifying candidates. Ngrams is slower and returns huge numbers of candidates, slowing down matching. All checks all candidates. It's a pig.
+There are three different methods for picking candidates - see [options](#options) for a detailed explanation. Simhash runs very quickly and does an excellent job of identifying candidates. Ngrams is slower and returns huge numbers of candidates, slowing down matching. All checks all candidates - it's a pig.
 
 ```
 method      time   candidates returned
@@ -112,7 +112,7 @@ all         3.9s   5,000,000
 #### Matching
 
 Once candidates are identified, the string pairs are scored and
-winners are picked out. This is O(n):
+winners are picked out. Scoring is O(n):
 
 ```
 candidates   time
