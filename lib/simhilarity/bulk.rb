@@ -6,13 +6,15 @@ module Simhilarity
   # this is used if you want to match 50 new addresses against your
   # database of 1,000 known addresses.
   class Bulk < Matcher
-    # REMIND
-    attr_accessor :max_hamming
-
     # Initialize a new Bulk matcher. See Matcher#initialize. Bulk adds
     # these options:
     #
-    # REMIND
+    # * +candidates+: specifies which method to use for finding
+    #   candidates. See the README for more details.
+    # * +ngrams_overlaps+: Minimum number of ngram overlaps, defaults
+    #   to 3.
+    # * +simhash_max_hamming+: Maximum simhash hamming distance,
+    #   defaults to 7.
     def initialize(options = {})
       super(options)
     end

@@ -28,6 +28,7 @@ module Simhilarity
     # * +reader+: Proc for turning opaque items into strings.
     # * +normalizer+: Proc for normalizing strings.
     # * +ngrammer+: Proc for generating ngrams.
+    # * +verbose+: If true, show progress bars and timing.
     def initialize(options = {})
       @options = options
 
@@ -60,7 +61,7 @@ module Simhilarity
       end
     end
 
-    # Returns the current corpus, or nil if unset.
+    # The current corpus.
     def corpus
       @corpus
     end

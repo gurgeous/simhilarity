@@ -128,7 +128,7 @@ candidates   time
 
 ## Options
 
-There are four major ways to configure simhilarity:
+There are a few ways to configure simhilarity:
 
 * **candidates** - controls how candidates are picked from the complete set of all string pairs. We want to avoid looking at all string pairs, because that's quite expensive for large datasets. On the other hand, if we examine too few we might miss some of the best matches. A conundrum. There are three different settings:
 
@@ -157,3 +157,5 @@ There are four major ways to configure simhilarity:
 * **normalizer** - proc for normalizing incoming strings. The default normalizer downcases, removes non-alphas, and strips whitespace.
 
 * **ngrammer** - proc for converting normalized strings into ngrams. The default ngrammer pulls out bigrams and runs of digits, which is perfect for matching names and addresses.
+
+* **verbose** - if true, show progress while simhilarity is working. Great for the impatient.
