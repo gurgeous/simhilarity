@@ -98,11 +98,11 @@ simhash 7   9s     10,000   (this is the default)
 simhash 8   12s    25,000
 simhash 9   13s    60,000
 
-ngrams 5    46s    1,000,000
-ngrams 4    44s    1,500,000
-ngrams 3    40s    2,100,000
+ngrams 5    45s    1,000,000
+ngrams 4    45s    1,500,000
+ngrams 3    40s    2,000,000
 
-all         3.9s   5,000,000
+all         4s   5,000,000
 ```
 
 #### Matching
@@ -111,10 +111,9 @@ Once candidates are identified, the string pairs are scored and winners are pick
 
 ```
 candidates   time
-25,000       1s
-60,000       2s
+50,000       1s
 1,000,000    35s
-5,000,000    190s
+5,000,000    140s
 ```
 
 
