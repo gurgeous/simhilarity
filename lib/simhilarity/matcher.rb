@@ -37,13 +37,15 @@ module Simhilarity
       self.normalizer = options[:normalizer]
       self.ngrammer = options[:ngrammer]
 
-      self.freq = Hash.new(1)
+      reset_corpus
     end
 
     # Set the corpus. Calculates ngram frequencies (#freq) for future
     # scoring.
     def corpus=(corpus)
       @corpus = corpus
+
+      reset_corpus
 
       # calculate ngram counts for the corpus
       counts = Hash.new(0)
@@ -54,10 +56,9 @@ module Simhilarity
       end
 
       # turn counts into inverse frequencies
-      self.freq = Hash.new(1)
       total = counts.values.inject(&:+).to_f
       counts.each do |ngram, count|
-        self.freq[ngram] = total / count
+        @freq[ngram] = ((total / count) * 10).round
       end
     end
 
@@ -114,7 +115,16 @@ module Simhilarity
     # simhash[http://matpalm.com/resemblance/simhash/] of the
     # +ngrams+.
     def simhash(ngrams)
-      Bits.simhash32(freq, ngrams)
+      # map each ngram to its bitsums
+      sums = ngrams.map { |i| simhash_bitsums(i) }
+      # transpose and calculate final sum for each bit
+      bits = sums.transpose.map { |values| values.inject(&:+) }
+      # wherever we have a positive sum, the simhash bit is 1
+      simhash = 0
+      bits.each_with_index do |i, index|
+        simhash |= (1 << index) if i > 0
+      end
+      simhash
     end
 
     def inspect #:nodoc:
@@ -135,6 +145,30 @@ module Simhilarity
     # Turn a user's opaque item into an Element.
     def element_for(opaque)
       Element.new(self, opaque)
+    end
+
+    def reset_corpus
+      @freq = Hash.new(1)
+      @bitsums = { }
+    end
+
+    # calculate the simhash bitsums for this +ngram+, as part of
+    # calculating the simhash. We can cache this because it only
+    # depends on the freq and ngram.
+    def simhash_bitsums(ngram)
+      @bitsums[ngram] ||= begin
+        # hash the ngram using a consistent hash (ruby's hash changes
+        # across sessions)
+        hash = Digest::MD5.hexdigest(ngram).to_i(16)
+
+        # map hash bits, 1 ? f : -f
+        f = freq[ngram]
+        array = Array.new(32, 0)
+        (0...32).each do |i|
+          array[i] = (((hash >> i) & 1) == 1) ? f : -f
+        end
+        array
+      end
     end
 
     # Puts if options[:verbose]

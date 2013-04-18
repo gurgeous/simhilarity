@@ -26,37 +26,5 @@ module Simhilarity
       b = (x >>  0) & 0xffff
       HAMMING16[a] + HAMMING16[b]
     end
-
-    # can't rely on ruby hash, because it's not consistent across
-    # sessions. Let's just use MD5.
-    def self.nhash(ngram)
-      @hashes ||= { }
-      @hashes[ngram] ||= Digest::MD5.hexdigest(ngram).to_i(16)
-    end
-
-    # Calculate the frequency weighted
-    # simhash[http://matpalm.com/resemblance/simhash/] of the
-    # +ngrams+.
-    def self.simhash32(freq, ngrams)
-      # array of bit sums
-      bits = Array.new(32, 0)
-
-      # walk bits of ngram's hash, increase/decrease bit sums
-      ngrams.each do |ngram|
-        f = freq[ngram]
-        hash = nhash(ngram)
-        (0...32).each do |i|
-          bits[i] += (((hash >> i) & 1) == 1) ? f : -f
-        end
-      end
-
-      # calculate simhash based on whether bit sums are negative or
-      # positive
-      simhash = 0
-      (0...32).each do |bit|
-        simhash |= (1 << bit) if bits[bit] > 0
-      end
-      simhash
-    end
   end
 end
