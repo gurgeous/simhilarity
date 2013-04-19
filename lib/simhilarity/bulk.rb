@@ -69,7 +69,7 @@ module Simhilarity
       end
 
       method = "candidates_#{method}".to_sym
-      if !respond_to?(method)
+      if !respond_to?(method, true)
         raise "unsupported options[:candidates] #{options[:candidates].inspect}"
       end
 
