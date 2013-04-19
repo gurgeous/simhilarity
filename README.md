@@ -162,3 +162,10 @@ There are a few ways to configure simhilarity:
 * **ngrammer** - proc for converting normalized strings into ngrams. The default ngrammer pulls out bigrams and runs of digits, which is perfect for matching names and addresses.
 
 * **verbose** - if true, show progress while simhilarity is working. Great for the impatient. Use --verbose from the command line.
+
+## Changelog
+
+#### Master (unreleased)
+
+* Works with Ruby 2.0 - thanks @abscondment!
+* Travis
