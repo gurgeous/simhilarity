@@ -26,9 +26,15 @@ module Simhilarity
       end
 
       vputs "Using #{method} with needles=#{needles.length} haystack=#{haystack.length}..."
-      self.send(method, needles, haystack).map do |n, h|
+      candidates = self.send(method, needles, haystack)
+      # no self-dups if these are the same
+      if needles == haystack
+        candidates = candidates.reject { |n, h| n == h }
+      end
+      candidates = candidates.map do |n, h|
         Candidate.new(self, n, h)
       end
+      candidates
     end
 
     # Return ALL candidates. This only works for small datasets.

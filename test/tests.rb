@@ -101,10 +101,11 @@ class Tests < Test::Unit::TestCase
     assert_equal matcher.ngrams("hi 42"), ["hi", "42"]
   end
 
-  def test_candidates
-    assert_candidates(:all, 0.974)
-    assert_candidates(:ngrams, 0.974)
-    assert_candidates(:simhash, 0.949)
+  def test_no_selfdups
+    # if you pass in the same list twice, it should ignore self-dups
+    list = ["hello, world", "hello there"]
+    matches = @matcher.matches(list, list)
+    assert_not_equal matches[0][1], "hello, world"
   end
 
   def test_bin
@@ -116,5 +117,11 @@ class Tests < Test::Unit::TestCase
     assert_system("#{bin} --candidates ngrams identity.txt identity.txt")
     assert_system("#{bin} --candidates ngrams=3 identity.txt identity.txt")
     assert_system("#{bin} --candidates all identity.txt identity.txt")
+  end
+
+  def test_candidates
+    assert_candidates(:all, 0.974)
+    assert_candidates(:ngrams, 0.974)
+    assert_candidates(:simhash, 0.949)
   end
 end
