@@ -22,6 +22,10 @@ module Simhilarity
     # Matcher#ngrams for the default implementation.
     attr_accessor :ngrammer
 
+    # Proc for scoring a pair of strings. See Matcher#score for the
+    # default implementation.
+    attr_accessor :scorer
+
     # Ngram frequency weights from the corpus, or 1 if the ngram isn't
     # in the corpus.
     attr_accessor :freq
@@ -31,6 +35,7 @@ module Simhilarity
     # * +reader+: Proc for turning opaque items into strings.
     # * +normalizer+: Proc for normalizing strings.
     # * +ngrammer+: Proc for generating ngrams.
+    # * +scorer+: Proc for scoring ngrams.
     # * +verbose+: If true, show progress bars and timing.
     # * +candidates+: specifies which method to use for finding
     #   candidates. See the README for more details.
@@ -45,6 +50,7 @@ module Simhilarity
       self.reader = options[:reader]
       self.normalizer = options[:normalizer]
       self.ngrammer = options[:ngrammer]
+      self.scorer = options[:scorer]
 
       reset_corpus
     end
@@ -140,6 +146,27 @@ module Simhilarity
       # runs of digits
       ngrams += str.scan(/\d+/)
       ngrams.uniq
+    end
+
+    # Score a +Candidate+. The default implementation is the {dice
+    # coefficient}[http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient],
+    # <tt>(2*c)/(a+b)</tt>.
+    #
+    # * +a+: the frequency weighted sum of the ngrams in a
+    # * +b+: the frequency weighted sum of the ngrams in b
+    # * +c+: the frequency weighted sum of the ngrams in (a & b)
+    def score(candidate)
+      if scorer
+        return scorer.call(candidate)
+      end
+
+      c = (candidate.a.ngrams & candidate.b.ngrams)
+      return 0 if c.length == 0
+
+      a = candidate.a.ngrams_sum
+      b = candidate.b.ngrams_sum
+      c = ngrams_sum(c)
+      (2.0 * c) / (a + b)
     end
 
     # Sum up the frequency weights of the +ngrams+.

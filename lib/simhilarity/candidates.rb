@@ -8,9 +8,27 @@ module Simhilarity
     # Find candidates from +needles+ & +haystack+. The method used
     # depends on the value of options[:candidates]
     def candidates(needles, haystack)
+      # generate candidates
+      candidates_method = candidates_method(needles, haystack)
+      candidates = self.send(candidates_method, needles, haystack)
+
+      # if these are the same, no self-dups
+      if needles == haystack
+        candidates = candidates.reject { |n, h| n == h }
+      end
+
+      # map and return
+      candidates.map do |n, h|
+        Candidate.new(self, n, h)
+      end
+    end
+
+    # Select the method for finding candidates based on
+    # options[:candidates].
+    def candidates_method(needles, haystack)
+      # pick the method
       method = options[:candidates]
       method ||= (needles.length * haystack.length < 200000) ? :all : :simhash
-
       case method
       when /^ngrams=(\d+)$/
         method = :ngrams
@@ -26,15 +44,7 @@ module Simhilarity
       end
 
       vputs "Using #{method} with needles=#{needles.length} haystack=#{haystack.length}..."
-      candidates = self.send(method, needles, haystack)
-      # no self-dups if these are the same
-      if needles == haystack
-        candidates = candidates.reject { |n, h| n == h }
-      end
-      candidates = candidates.map do |n, h|
-        Candidate.new(self, n, h)
-      end
-      candidates
+      method
     end
 
     # Return ALL candidates. This only works for small datasets.
