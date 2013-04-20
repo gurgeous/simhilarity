@@ -66,15 +66,9 @@ score,needle,haystack
 
 It will print out the best matches between needle and haystack in CSV format. Use `simhilarity --verbose` to look at pretty progress bars while it's running. Use --candidates to customize the candidates selection method, which will dramatically affect performance for large data sets.
 
-### Simhilarity::Bulk
+### Simhilarity::Matcher
 
-To use simhilarity from code, create a `Bulk` and call `matches(needles, haystack)`. It'll return an array of tuples, `[needle, haystack, score]`. By default, simhilarity assumes that needles and haystack are arrays of strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See [options](#options).
-
-### Simhilarity::Single
-
-Sometimes it's useful to just calculate the score between two strings. For example, if you just want a title similarity measurement as part of some larger analysis between two books. Create a `Single` and call `score(a, b)` to measure similarity between those two items. By default, simhilarity assumes that needle and haystack are strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See [options](#options).
-
-Important note: For best results with `Single`, set the corpus so that simhilarity can calculate ngram frequencies. This can dramatically improve accuracy. `Bulk` will do this automatically because it has access to the corpus, but `Single` doesn't. Call `corpus=` manually when using `Single`.
+To use simhilarity from code, create a `Matcher` and call `matches(needles, haystack)`. It'll return an array of tuples, `[needle, haystack, score]`. By default, simhilarity assumes that needles and haystack are arrays of strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See [options](#options).
 
 <a name="benchmarks"/>
 
@@ -135,10 +129,10 @@ There are a few ways to configure simhilarity:
   Simhash works great, but there's no reason not to use `:ngrams` or even `:all` for small data sets. In fact, that's what simhilarity does by default - if you use a small dataset (needle * haystack < 200,000) it defaults to `:all`, otherwise it uses `:simhash`. Some examples:
 
   ```ruby
-  Simhilarity::Bulk.new  # defaults to :all or :simhash based on size<
-  Simhilarity::Bulk.new(candidates: :simhash)
-  Simhilarity::Bulk.new(candidates: :simhash, simhash_max_hamming: 8)
-  Simhilarity::Bulk.new(candidates: :ngrams, ngram_overlaps: 4)
+  Simhilarity::Matcher.new  # defaults to :all or :simhash based on size
+  Simhilarity::Matcher.new(candidates: :simhash)
+  Simhilarity::Matcher.new(candidates: :simhash, simhash_max_hamming: 8)
+  Simhilarity::Matcher.new(candidates: :ngrams, ngram_overlaps: 4)
   ```
 
   or:

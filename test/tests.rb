@@ -29,14 +29,14 @@ class Tests < Test::Unit::TestCase
     sample
   end
 
-  def assert_bulk_candidates(candidates, percent)
+  def assert_candidates(candidates, percent)
     sample = self.sample
 
     # match, with benchmark
     output = nil
     Benchmark.bm(10) do |bm|
       bm.report(candidates.to_s) do
-        matcher = Simhilarity::Bulk.new(candidates: candidates)
+        matcher = Simhilarity::Matcher.new(candidates: candidates)
         output = matcher.matches(sample.needle, sample.haystack)
       end
     end
@@ -101,15 +101,10 @@ class Tests < Test::Unit::TestCase
     assert_equal matcher.ngrams("hi 42"), ["hi", "42"]
   end
 
-  def test_single
-    score = Simhilarity::Single.new.score("hello world", "hi worlds")
-    assert (score - 0.556).abs < 0.001, "test_single percent was wrong!"
-  end
-
-  def test_bulk
-    assert_bulk_candidates(:all, 0.974)
-    assert_bulk_candidates(:ngrams, 0.974)
-    assert_bulk_candidates(:simhash, 0.949)
+  def test_candidates
+    assert_candidates(:all, 0.974)
+    assert_candidates(:ngrams, 0.974)
+    assert_candidates(:simhash, 0.949)
   end
 
   def test_bin

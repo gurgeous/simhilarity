@@ -1,57 +1,9 @@
-require "bk"
-require "set"
-
 module Simhilarity
-  # Match a set of needles against a haystack, in bulk. For example,
-  # this is used if you want to match 50 new addresses against your
-  # database of 1,000 known addresses.
-  class Bulk < Matcher
+  module Candidates
     # default minimum number # of ngram overlaps with :ngrams
     DEFAULT_NGRAM_OVERLAPS = 3
     # default maximum hamming distance with :simhash
     DEFAULT_SIMHASH_MAX_HAMMING = 7
-
-    # Initialize a new Bulk matcher. See Matcher#initialize. Bulk adds
-    # these options:
-    #
-    # * +candidates+: specifies which method to use for finding
-    #   candidates. See the README for more details.
-    # * +ngrams_overlaps+: Minimum number of ngram overlaps, defaults
-    #   to 3.
-    # * +simhash_max_hamming+: Maximum simhash hamming distance,
-    #   defaults to 7.
-    def initialize(options = {})
-      super(options)
-    end
-
-    # Match each item in +needles+ to an item in +haystack+. Returns
-    # an array of tuples, <tt>[needle, haystack, score]</tt>. Scores
-    # range from 0 to 1, with 1 being a perfect match and 0 being a
-    # terrible match.
-    def matches(needles, haystack)
-      # create Elements
-      if needles == haystack
-        needles = haystack = import_list(needles)
-
-        # set the corpus, to generate frequency weights
-        self.corpus = needles
-      else
-        needles = import_list(needles)
-        haystack = import_list(haystack)
-
-        # set the corpus, to generate frequency weights
-        self.corpus = (needles + haystack)
-      end
-
-      # get candidate matches
-      candidates = candidates(needles, haystack)
-      vputs " got #{candidates.length} candidates."
-
-      # pick winners
-      winners(needles, candidates)
-    end
-
-    protected
 
     # Find candidates from +needles+ & +haystack+. The method used
     # depends on the value of options[:candidates]

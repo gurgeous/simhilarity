@@ -1,8 +1,11 @@
+require "bk"
+require "set"
 require "progressbar"
 
 module Simhilarity
-  # Abstract superclass for matching. Mainly a container for options, corpus, etc.
   class Matcher
+    include Simhilarity::Candidates
+
     # Options used to create this Matcher.
     attr_accessor :options
 
@@ -29,6 +32,12 @@ module Simhilarity
     # * +normalizer+: Proc for normalizing strings.
     # * +ngrammer+: Proc for generating ngrams.
     # * +verbose+: If true, show progress bars and timing.
+    # * +candidates+: specifies which method to use for finding
+    #   candidates. See the README for more details.
+    # * +ngrams_overlaps+: Minimum number of ngram overlaps, defaults
+    #   to 3 (for candidates = :ngrams)
+    # * +simhash_max_hamming+: Maximum simhash hamming distance,
+    #   defaults to 7. (for candidates = :simhash)
     def initialize(options = {})
       @options = options
 
@@ -65,6 +74,33 @@ module Simhilarity
     # The current corpus.
     def corpus
       @corpus
+    end
+
+    # Match each item in +needles+ to an item in +haystack+. Returns
+    # an array of tuples, <tt>[needle, haystack, score]</tt>. Scores
+    # range from 0 to 1, with 1 being a perfect match and 0 being a
+    # terrible match.
+    def matches(needles, haystack)
+      # create Elements
+      if needles == haystack
+        needles = haystack = import_list(needles)
+
+        # set the corpus, to generate frequency weights
+        self.corpus = needles
+      else
+        needles = import_list(needles)
+        haystack = import_list(haystack)
+
+        # set the corpus, to generate frequency weights
+        self.corpus = (needles + haystack)
+      end
+
+      # get candidate matches
+      candidates = candidates(needles, haystack)
+      vputs " got #{candidates.length} candidates."
+
+      # pick winners
+      winners(needles, candidates)
     end
 
     # Turn an opaque item from the user into a string.
