@@ -71,9 +71,8 @@ class Tests < Test::Unit::TestCase
     # not a string
     assert_raise(RuntimeError) { @matcher.read(123) }
 
-    # custom
-    @matcher.reader = lambda(&:key)
-    assert_equal @matcher.read(OpenStruct.new(key: "gub")), "gub"
+    matcher = Simhilarity::Matcher.new(reader: lambda(&:key))
+    assert_equal matcher.read(OpenStruct.new(key: "gub")), "gub"
   end
 
   def test_normalizer
@@ -81,8 +80,8 @@ class Tests < Test::Unit::TestCase
     assert_equal @matcher.normalize(" HELLO,\tWORLD! "), "hello world"
 
     # custom
-    @matcher.normalizer = lambda(&:upcase)
-    assert_equal @matcher.normalize("gub"), "GUB"
+    matcher = Simhilarity::Matcher.new(normalizer: lambda(&:upcase))
+    assert_equal matcher.normalize("gub"), "GUB"
   end
 
   def test_ngrams
@@ -90,8 +89,8 @@ class Tests < Test::Unit::TestCase
     assert_equal @matcher.ngrams("hi 42"), ["hi", "i ", " 4", "42"]
 
     # custom
-    @matcher.ngrammer = lambda(&:split)
-    assert_equal @matcher.ngrams("hi 42"), ["hi", "42"]
+    matcher = Simhilarity::Matcher.new(ngrammer: lambda(&:split))
+    assert_equal matcher.ngrams("hi 42"), ["hi", "42"]
   end
 
   def test_proc_options

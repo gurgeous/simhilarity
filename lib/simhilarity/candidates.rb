@@ -18,9 +18,7 @@ module Simhilarity
       end
 
       # map and return
-      candidates.map do |n, h|
-        Candidate.new(self, n, h)
-      end
+      candidates.map { |n, h| Candidate.new(n, h) }
     end
 
     # Select the method for finding candidates based on

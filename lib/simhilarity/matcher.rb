@@ -5,26 +5,10 @@ require "progressbar"
 module Simhilarity
   class Matcher
     include Simhilarity::Candidates
+    include Simhilarity::Score
 
     # Options used to create this Matcher.
     attr_accessor :options
-
-    # Proc for turning needle/haystack elements into strings. You can
-    # leave this nil if the elements are already strings. See
-    # Matcher#reader for the default implementation.
-    attr_accessor :reader
-
-    # Proc for normalizing input strings. See Matcher#normalize
-    # for the default implementation.
-    attr_accessor :normalizer
-
-    # Proc for generating ngrams from a normalized string. See
-    # Matcher#ngrams for the default implementation.
-    attr_accessor :ngrammer
-
-    # Proc for scoring a pair of strings. See Matcher#score for the
-    # default implementation.
-    attr_accessor :scorer
 
     # Ngram frequency weights from the corpus, or 1 if the ngram isn't
     # in the corpus.
@@ -45,13 +29,6 @@ module Simhilarity
     #   defaults to 7. (for candidates = :simhash)
     def initialize(options = {})
       @options = options
-
-      # procs
-      self.reader = options[:reader]
-      self.normalizer = options[:normalizer]
-      self.ngrammer = options[:ngrammer]
-      self.scorer = options[:scorer]
-
       reset_corpus
     end
 
@@ -111,8 +88,8 @@ module Simhilarity
 
     # Turn an opaque item from the user into a string.
     def read(opaque)
-      if reader
-        return reader.call(opaque)
+      if options[:reader]
+        return options[:reader].call(opaque)
       end
 
       if opaque.is_a?(String)
@@ -123,8 +100,8 @@ module Simhilarity
 
     # Normalize an incoming string from the user.
     def normalize(incoming_str)
-      if normalizer
-        return normalizer.call(incoming_str)
+      if options[:normalizer]
+        return options[:normalizer].call(incoming_str)
       end
 
       str = incoming_str
@@ -137,8 +114,8 @@ module Simhilarity
 
     # Generate ngrams from a normalized str.
     def ngrams(str)
-      if ngrammer
-        return ngrammer.call(str)
+      if options[:ngrammer]
+        return options[:ngrammer].call(str)
       end
 
       # two letter ngrams (bigrams)
@@ -146,27 +123,6 @@ module Simhilarity
       # runs of digits
       ngrams += str.scan(/\d+/)
       ngrams.uniq
-    end
-
-    # Score a +Candidate+. The default implementation is the {dice
-    # coefficient}[http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient],
-    # <tt>(2*c)/(a+b)</tt>.
-    #
-    # * +a+: the frequency weighted sum of the ngrams in a
-    # * +b+: the frequency weighted sum of the ngrams in b
-    # * +c+: the frequency weighted sum of the ngrams in (a & b)
-    def score(candidate)
-      if scorer
-        return scorer.call(candidate)
-      end
-
-      c = (candidate.a.ngrams & candidate.b.ngrams)
-      return 0 if c.length == 0
-
-      a = candidate.a.ngrams_sum
-      b = candidate.b.ngrams_sum
-      c = ngrams_sum(c)
-      (2.0 * c) / (a + b)
     end
 
     # Sum up the frequency weights of the +ngrams+.
