@@ -16,7 +16,8 @@ class Main
     # match
     tm = Time.now
     matcher = Simhilarity::Matcher.new(options)
-    matches = matcher.matches(needle, haystack)
+    matcher.corpus = haystack
+    matches = matcher.matches(needle)
 
     if options[:verbose]
       tm = Time.now - tm

@@ -37,7 +37,8 @@ class Tests < Test::Unit::TestCase
     Benchmark.bm(10) do |bm|
       bm.report(candidates.to_s) do
         matcher = Simhilarity::Matcher.new(candidates: candidates)
-        output = matcher.matches(sample.needle, sample.haystack)
+        matcher.corpus = sample.haystack
+        output = matcher.matches(sample.needle)
       end
     end
 
@@ -103,8 +104,17 @@ class Tests < Test::Unit::TestCase
   def test_no_selfdups
     # if you pass in the same list twice, it should ignore self-dups
     list = ["hello, world", "hello there"]
-    matches = @matcher.matches(list, list)
+    @matcher.corpus = list
+    matches = @matcher.matches(@matcher.corpus)
     assert_not_equal matches[0][1], "hello, world"
+  end
+
+  def test_corpus_required
+    # if you do not set a corpus, the matcher should yell
+    matcher = Simhilarity::Matcher.new
+    assert_raise RuntimeError do
+      matches = matcher.matches(['FOOM'])
+    end
   end
 
   def test_bin

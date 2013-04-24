@@ -35,13 +35,13 @@ module Simhilarity
     # Set the corpus. Calculates ngram frequencies (#freq) for future
     # scoring.
     def corpus=(corpus)
-      @corpus = corpus
+      @corpus = import_list(corpus)
 
       reset_corpus
 
       # calculate ngram counts for the corpus
       counts = Hash.new(0)
-      veach("Corpus", import_list(corpus)) do |element|
+      veach("Corpus", @corpus) do |element|
         element.ngrams.each do |ngram|
           counts[ngram] += 1
         end
@@ -59,27 +59,20 @@ module Simhilarity
       @corpus
     end
 
-    # Match each item in +needles+ to an item in +haystack+. Returns
+    # Match each item in +needles+ to an item in #corpus. Returns
     # an array of tuples, <tt>[needle, haystack, score]</tt>. Scores
     # range from 0 to 1, with 1 being a perfect match and 0 being a
     # terrible match.
-    def matches(needles, haystack)
-      # create Elements
-      if needles == haystack
-        needles = haystack = import_list(needles)
-
-        # set the corpus, to generate frequency weights
-        self.corpus = needles
-      else
-        needles = import_list(needles)
-        haystack = import_list(haystack)
-
-        # set the corpus, to generate frequency weights
-        self.corpus = haystack
+    def matches(needles)
+      if corpus.nil?
+        raise RuntimeError.new('can\'t match before setting a corpus')
       end
 
+      # create Elements
+      needles = import_list(needles)
+
       # get candidate matches
-      candidates = candidates(needles, haystack)
+      candidates = candidates(needles, corpus)
       vputs " got #{candidates.length} candidates."
 
       # pick winners
