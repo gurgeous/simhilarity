@@ -119,8 +119,8 @@ class Tests < Test::Unit::TestCase
   end
 
   def test_candidates
-    assert_candidates(:all, 0.974)
-    assert_candidates(:ngrams, 0.974)
+    assert_candidates(:all, 0.949)
+    assert_candidates(:ngrams, 0.949)
     assert_candidates(:simhash, 0.949)
   end
 end

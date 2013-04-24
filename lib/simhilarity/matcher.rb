@@ -75,7 +75,7 @@ module Simhilarity
         haystack = import_list(haystack)
 
         # set the corpus, to generate frequency weights
-        self.corpus = (needles + haystack)
+        self.corpus = haystack
       end
 
       # get candidate matches
