@@ -13,9 +13,8 @@ module Simhilarity
       # walk them, eliminate dups
       seen = Set.new
       winners = candidates.map do |i|
-        next if seen.include?(i.a) || seen.include?(i.b)
+        next if seen.include?(i.a)
         seen << i.a
-        seen << i.b
         i
       end.compact
 

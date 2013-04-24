@@ -117,6 +117,26 @@ class Tests < Test::Unit::TestCase
     end
   end
 
+  def test_one_result_can_win_multiple_times
+    # We should be able to find the same piece of hay multiple times for
+    # different needles.
+    haystack = ['Black Sabbath', 'Led Zeppelin', 'The Doors',
+                'The Beatles', 'Neil Young']
+    needles = ['blak sabbath', 'black sabath', 'block soborch']
+    @matcher.corpus = haystack
+
+    # Whether matched individually or as a group, all of these needles
+    # should produce the same result.
+    matches = @matcher.matches(needles)
+    needles.each do |n|
+      matches.concat @matcher.matches([n])
+    end
+
+    matches.each do |n, h, s|
+      assert_equal 'Black Sabbath', h
+    end
+  end
+
   def test_bin
     bin = "../bin/simhilarity"
     assert_system("#{bin} identity.txt identity.txt")
