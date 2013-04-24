@@ -78,12 +78,8 @@ module Simhilarity
     def candidates_simhash(needles, haystack)
       max_hamming = options[:simhash_max_hamming] || DEFAULT_SIMHASH_MAX_HAMMING
 
-      # calculate this first so we get a nice progress bar
-      veach(" simhash", corpus) { |i| i.simhash }
-
-      # build the bk tree
-      bk = BK::Tree.new(lambda { |a, b| Bits.hamming32(a.simhash, b.simhash) })
-      veach(" bktree", haystack) { |i| bk.add(i) }
+      # build or fetch @bk_tree
+      bk = self.bk_tree
 
       # search for candidates with low hamming distance
       candidates = []

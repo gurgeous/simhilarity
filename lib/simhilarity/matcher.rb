@@ -162,6 +162,20 @@ module Simhilarity
     def reset_corpus
       @freq = Hash.new(1)
       @bitsums = { }
+      @bk_tree = nil
+    end
+
+    def bk_tree
+      if @bk_tree.nil?
+        # calculate this first so we get a nice progress bar
+        veach(" simhash", corpus) { |i| i.simhash }
+
+        # build the bk tree
+        @bk_tree = BK::Tree.new(lambda { |a, b| Bits.hamming32(a.simhash, b.simhash) })
+        veach(" bktree", corpus) { |i| @bk_tree.add(i) }
+      end
+
+      @bk_tree
     end
 
     # calculate the simhash bitsums for this +ngram+, as part of
