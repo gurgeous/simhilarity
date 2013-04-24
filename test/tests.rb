@@ -107,6 +107,25 @@ class Tests < Test::Unit::TestCase
     assert_not_equal matches[0][1], "hello, world"
   end
 
+  def test_one_result_can_win_multiple_times
+    # We should be able to find the same piece of hay multiple times for
+    # different needles.
+    haystack = ['Black Sabbath', 'Led Zeppelin', 'The Doors',
+                'The Beatles', 'Neil Young']
+    needles = ['blak sabbath', 'black sabath', 'block soborch']
+
+    # Whether matched individually or as a group, all of these needles
+    # should produce the same result.
+    matches = @matcher.matches(needles, haystack)
+    needles.each do |n|
+      matches.concat @matcher.matches([n], haystack)
+    end
+
+    matches.each do |n, h, s|
+      assert_equal 'Black Sabbath', h
+    end
+  end
+
   def test_bin
     bin = "../bin/simhilarity"
     assert_system("#{bin} identity.txt identity.txt")
@@ -119,8 +138,8 @@ class Tests < Test::Unit::TestCase
   end
 
   def test_candidates
-    assert_candidates(:all, 0.974)
-    assert_candidates(:ngrams, 0.974)
+    assert_candidates(:all, 0.949)
+    assert_candidates(:ngrams, 0.949)
     assert_candidates(:simhash, 0.949)
   end
 end
