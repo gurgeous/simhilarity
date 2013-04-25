@@ -30,41 +30,46 @@ module Simhilarity
     # = :ngrams)
     attr_accessor :ngram_overlaps
 
-    # Ngram frequency weights from the haystack, or 1 if the ngram
-    # isn't in the haystack.
-    attr_accessor :freq
-
     # Maximum simhash hamming distance, defaults to 7. (for candidates
     # = :simhash)
     attr_accessor :simhash_max_hamming
 
-    # Set the haystack. Calculates ngram frequencies (#freq) for
-    # future scoring.
+    # Set the haystack.
     def haystack=(haystack)
       @haystack = import_list(haystack)
 
+      # this stuff is lazily calculated from the haystack, and needs
+      # to be reset whenever the haystack changes.
       @bitsums = { }
       @bk_tree = nil
-
-      # calculate ngram counts for the haystack
-      counts = Hash.new(0)
-      veach("Haystack", @haystack) do |element|
-        element.ngrams.each do |ngram|
-          counts[ngram] += 1
-        end
-      end
-
-      # turn counts into inverse frequencies
-      @freq = Hash.new(1)
-      total = counts.values.inject(&:+).to_f
-      counts.each do |ngram, count|
-        @freq[ngram] = ((total / count) * 10).round
-      end
+      @freq = nil
     end
 
     # The current haystack.
     def haystack
       @haystack
+    end
+
+    # Ngram frequency weights from the haystack, or 1 if the ngram
+    # isn't in the haystack. Lazily calculated.
+    def freq
+      @freq ||= begin
+        # calculate ngram counts for the haystack
+        counts = Hash.new(0)
+        veach("Haystack", @haystack) do |element|
+          element.ngrams.each do |ngram|
+            counts[ngram] += 1
+          end
+        end
+
+        # turn counts into inverse frequencies
+        map = Hash.new(1)
+        total = counts.values.inject(&:+).to_f
+        counts.each do |ngram, count|
+          map[ngram] = ((total / count) * 10).round
+        end
+        map
+      end
     end
 
     # Match each item in +needles+ to an item in #haystack. Returns an
@@ -128,7 +133,7 @@ module Simhilarity
 
     # Sum up the frequency weights of the +ngrams+.
     def ngrams_sum(ngrams)
-      ngrams.map { |i| @freq[i] }.inject(&:+) || 0
+      ngrams.map { |i| freq[i] }.inject(&:+) || 0
     end
 
     # Calculate the frequency weighted

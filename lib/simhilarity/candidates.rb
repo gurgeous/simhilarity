@@ -2,6 +2,7 @@ module Simhilarity
   module Candidates
     # default minimum number # of ngram overlaps with :ngrams
     DEFAULT_NGRAM_OVERLAPS = 3
+
     # default maximum hamming distance with :simhash
     DEFAULT_SIMHASH_MAX_HAMMING = 7
 
@@ -77,18 +78,14 @@ module Simhilarity
     def candidates_simhash(needles)
       max_hamming = self.simhash_max_hamming || DEFAULT_SIMHASH_MAX_HAMMING
 
-      # build or fetch @bk_tree
-      bk = self.bk_tree
-
       # search for candidates with low hamming distance
       candidates = []
       veach(" hamming #{max_hamming}", needles) do |n|
-        bk.query(n, max_hamming).each do |h, distance|
+        bk_tree.query(n, max_hamming).each do |h, distance|
           candidates << [n, h]
         end
       end
       candidates
     end
-
   end
 end
