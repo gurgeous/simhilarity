@@ -6,11 +6,11 @@ module Simhilarity
     DEFAULT_SIMHASH_MAX_HAMMING = 7
 
     # Find candidates from +needles+ & +haystack+. The method used
-    # depends on the value of options[:candidates]
-    def candidates(needles, haystack)
+    # depends on the value of +candidates+
+    def candidates_for(needles)
       # generate candidates
-      candidates_method = candidates_method(needles, haystack)
-      candidates = self.send(candidates_method, needles, haystack)
+      candidates_method = candidates_method(needles)
+      candidates = self.send(candidates_method, needles)
 
       # if these are the same, no self-dups
       if needles == haystack
@@ -21,24 +21,23 @@ module Simhilarity
       candidates.map { |n, h| Candidate.new(n, h) }
     end
 
-    # Select the method for finding candidates based on
-    # options[:candidates].
-    def candidates_method(needles, haystack)
+    # Select the method for finding candidates based on +candidates+.
+    def candidates_method(needles)
       # pick the method
-      method = options[:candidates]
+      method = self.candidates
       method ||= (needles.length * haystack.length < 200000) ? :all : :simhash
       case method
       when /^ngrams=(\d+)$/
         method = :ngrams
-        options[:ngram_overlaps] = $1.to_i
+        self.ngram_overlaps = $1.to_i
       when /^simhash=(\d+)$/
         method = :simhash
-        options[:simhash_max_hamming] = $1.to_i
+        self.simhash_max_hamming = $1.to_i
       end
 
       method = "candidates_#{method}".to_sym
       if !respond_to?(method, true)
-        raise "unsupported options[:candidates] #{options[:candidates].inspect}"
+        raise "unsupported candidates #{candidates.inspect}"
       end
 
       vputs "Using #{method} with needles=#{needles.length} haystack=#{haystack.length}..."
@@ -46,14 +45,14 @@ module Simhilarity
     end
 
     # Return ALL candidates. This only works for small datasets.
-    def candidates_all(needles, haystack)
+    def candidates_all(needles)
       needles.product(haystack)
     end
 
     # Return candidates that overlap with three or more matching
     # ngrams. Only works for small datasets.
-    def candidates_ngrams(needles, haystack)
-      ngram_overlaps = options[:ngram_overlaps] || DEFAULT_NGRAM_OVERLAPS
+    def candidates_ngrams(needles)
+      ngram_overlaps = self.ngram_overlaps || DEFAULT_NGRAM_OVERLAPS
 
       candidates = []
       veach(" ngrams #{ngram_overlaps}", needles) do |n|
@@ -75,8 +74,8 @@ module Simhilarity
 
     # Find candidates that are close based on hamming distance between
     # the simhashes.
-    def candidates_simhash(needles, haystack)
-      max_hamming = options[:simhash_max_hamming] || DEFAULT_SIMHASH_MAX_HAMMING
+    def candidates_simhash(needles)
+      max_hamming = self.simhash_max_hamming || DEFAULT_SIMHASH_MAX_HAMMING
 
       # build or fetch @bk_tree
       bk = self.bk_tree

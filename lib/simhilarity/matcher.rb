@@ -7,72 +7,80 @@ module Simhilarity
     include Simhilarity::Candidates
     include Simhilarity::Score
 
-    # Options used to create this Matcher.
-    attr_accessor :options
+    # If true, show progress bars and timing
+    attr_accessor :verbose
 
-    # Ngram frequency weights from the corpus, or 1 if the ngram isn't
-    # in the corpus.
+    # Proc for turning opaque items into strings.
+    attr_accessor :reader
+
+    # Proc for normalizing strings.
+    attr_accessor :normalizer
+
+    # Proc for generating ngrams.
+    attr_accessor :ngrammer
+
+    # Proc for scoring ngrams.
+    attr_accessor :scorer
+
+    # Specifies which method to use for finding candidates. See the
+    # README for more details.
+    attr_accessor :candidates
+
+    # Minimum number of ngram overlaps, defaults to 3 (for candidates
+    # = :ngrams)
+    attr_accessor :ngram_overlaps
+
+    # Ngram frequency weights from the haystack, or 1 if the ngram
+    # isn't in the haystack.
     attr_accessor :freq
 
-    # Create a new Matcher matcher. Options include:
-    #
-    # * +reader+: Proc for turning opaque items into strings.
-    # * +normalizer+: Proc for normalizing strings.
-    # * +ngrammer+: Proc for generating ngrams.
-    # * +scorer+: Proc for scoring ngrams.
-    # * +verbose+: If true, show progress bars and timing.
-    # * +candidates+: specifies which method to use for finding
-    #   candidates. See the README for more details.
-    # * +ngrams_overlaps+: Minimum number of ngram overlaps, defaults
-    #   to 3 (for candidates = :ngrams)
-    # * +simhash_max_hamming+: Maximum simhash hamming distance,
-    #   defaults to 7. (for candidates = :simhash)
-    def initialize(options = {})
-      @options = options
-      reset_corpus
-    end
+    # Maximum simhash hamming distance, defaults to 7. (for candidates
+    # = :simhash)
+    attr_accessor :simhash_max_hamming
 
-    # Set the corpus. Calculates ngram frequencies (#freq) for future
-    # scoring.
-    def corpus=(corpus)
-      @corpus = import_list(corpus)
+    # Set the haystack. Calculates ngram frequencies (#freq) for
+    # future scoring.
+    def haystack=(haystack)
+      @haystack = import_list(haystack)
 
-      reset_corpus
+      @bitsums = { }
+      @bk_tree = nil
 
-      # calculate ngram counts for the corpus
+      # calculate ngram counts for the haystack
       counts = Hash.new(0)
-      veach("Corpus", @corpus) do |element|
+      veach("Haystack", @haystack) do |element|
         element.ngrams.each do |ngram|
           counts[ngram] += 1
         end
       end
 
       # turn counts into inverse frequencies
+      @freq = Hash.new(1)
       total = counts.values.inject(&:+).to_f
       counts.each do |ngram, count|
         @freq[ngram] = ((total / count) * 10).round
       end
     end
 
-    # The current corpus.
-    def corpus
-      @corpus
+    # The current haystack.
+    def haystack
+      @haystack
     end
 
-    # Match each item in +needles+ to an item in #corpus. Returns
-    # an array of tuples, <tt>[needle, haystack, score]</tt>. Scores
+    # Match each item in +needles+ to an item in #haystack. Returns an
+    # array of tuples, <tt>[needle, haystack, score]</tt>. Scores
     # range from 0 to 1, with 1 being a perfect match and 0 being a
     # terrible match.
     def matches(needles)
-      if corpus.nil?
-        raise RuntimeError.new('can\'t match before setting a corpus')
+      if haystack.nil?
+        raise RuntimeError.new('can\'t match before setting a haystack')
       end
 
       # create Elements
       needles = import_list(needles)
 
       # get candidate matches
-      candidates = candidates(needles, corpus)
+      candidates = candidates_for(needles)
       vputs " got #{candidates.length} candidates."
 
       # pick winners
@@ -81,8 +89,8 @@ module Simhilarity
 
     # Turn an opaque item from the user into a string.
     def read(opaque)
-      if options[:reader]
-        return options[:reader].call(opaque)
+      if reader
+        return reader.call(opaque)
       end
 
       if opaque.is_a?(String)
@@ -93,8 +101,8 @@ module Simhilarity
 
     # Normalize an incoming string from the user.
     def normalize(incoming_str)
-      if options[:normalizer]
-        return options[:normalizer].call(incoming_str)
+      if normalizer
+        return normalizer.call(incoming_str)
       end
 
       str = incoming_str
@@ -107,8 +115,8 @@ module Simhilarity
 
     # Generate ngrams from a normalized str.
     def ngrams(str)
-      if options[:ngrammer]
-        return options[:ngrammer].call(str)
+      if ngrammer
+        return ngrammer.call(str)
       end
 
       # two letter ngrams (bigrams)
@@ -159,23 +167,16 @@ module Simhilarity
       Element.new(self, opaque)
     end
 
-    def reset_corpus
-      @freq = Hash.new(1)
-      @bitsums = { }
-      @bk_tree = nil
-    end
-
     def bk_tree
-      if @bk_tree.nil?
+      @bk_tree ||= begin
         # calculate this first so we get a nice progress bar
-        veach(" simhash", corpus) { |i| i.simhash }
+        veach(" simhash", haystack) { |i| i.simhash }
 
         # build the bk tree
-        @bk_tree = BK::Tree.new(lambda { |a, b| Bits.hamming32(a.simhash, b.simhash) })
-        veach(" bktree", corpus) { |i| @bk_tree.add(i) }
+        tree = BK::Tree.new(lambda { |a, b| Bits.hamming32(a.simhash, b.simhash) })
+        veach(" bktree", haystack) { |i| tree.add(i) }
+        tree
       end
-
-      @bk_tree
     end
 
     # calculate the simhash bitsums for this +ngram+, as part of
@@ -197,14 +198,14 @@ module Simhilarity
       end
     end
 
-    # Puts if options[:verbose]
+    # Puts if +verbose+ is true
     def vputs(s)
-      $stderr.puts s if options[:verbose]
+      $stderr.puts s if verbose
     end
 
-    # Like each, but with a progress bar if options[:verbose]
+    # Like each, but with a progress bar if +verbose+ is true
     def veach(title, array, &block)
-      if !options[:verbose]
+      if !verbose
         array.each do |i|
           yield(i)
         end

@@ -36,8 +36,9 @@ class Tests < Test::Unit::TestCase
     output = nil
     Benchmark.bm(10) do |bm|
       bm.report(candidates.to_s) do
-        matcher = Simhilarity::Matcher.new(candidates: candidates)
-        matcher.corpus = sample.haystack
+        matcher = Simhilarity::Matcher.new
+        matcher.candidates = candidates
+        matcher.haystack = sample.haystack
         output = matcher.matches(sample.needle)
       end
     end
@@ -56,9 +57,11 @@ class Tests < Test::Unit::TestCase
     assert((correct - percent).abs < 0.001, "percent #{correct} != #{percent}")
   end
 
+  TMP = "/tmp/_simhilarity_tests.txt"
+
   def assert_system(cmd)
-    system("#{cmd} > /dev/null 2>&1")
-    assert($? == 0, "#{cmd} failed")
+    system("#{cmd} > #{TMP} 2>&1")
+    assert($? == 0, File.read(TMP))
   end
 
   #
@@ -71,31 +74,23 @@ class Tests < Test::Unit::TestCase
 
     # not a string
     assert_raise(RuntimeError) { @matcher.read(123) }
-
-    matcher = Simhilarity::Matcher.new(reader: lambda(&:key))
-    assert_equal matcher.read(OpenStruct.new(key: "gub")), "gub"
   end
 
   def test_normalizer
     # default
     assert_equal @matcher.normalize(" HELLO,\tWORLD! "), "hello world"
-
-    # custom
-    matcher = Simhilarity::Matcher.new(normalizer: lambda(&:upcase))
-    assert_equal matcher.normalize("gub"), "GUB"
   end
 
   def test_ngrams
     # default
     assert_equal @matcher.ngrams("hi 42"), ["hi", "i ", " 4", "42"]
-
-    # custom
-    matcher = Simhilarity::Matcher.new(ngrammer: lambda(&:split))
-    assert_equal matcher.ngrams("hi 42"), ["hi", "42"]
   end
 
   def test_proc_options
-    matcher = Simhilarity::Matcher.new(reader: lambda(&:key), normalizer: lambda(&:upcase), ngrammer: lambda(&:split))
+    matcher = Simhilarity::Matcher.new
+    matcher.reader = lambda(&:key)
+    matcher.normalizer = lambda(&:upcase)
+    matcher.ngrammer =  lambda(&:split)
     assert_equal matcher.read(OpenStruct.new(key: "gub")), "gub"
     assert_equal matcher.normalize("gub"), "GUB"
     assert_equal matcher.ngrams("hi 42"), ["hi", "42"]
@@ -104,13 +99,13 @@ class Tests < Test::Unit::TestCase
   def test_no_selfdups
     # if you pass in the same list twice, it should ignore self-dups
     list = ["hello, world", "hello there"]
-    @matcher.corpus = list
-    matches = @matcher.matches(@matcher.corpus)
+    @matcher.haystack = list
+    matches = @matcher.matches(@matcher.haystack)
     assert_not_equal matches[0][1], "hello, world"
   end
 
-  def test_corpus_required
-    # if you do not set a corpus, the matcher should yell
+  def test_haystack_required
+    # if you do not set a haystack, the matcher should yell
     matcher = Simhilarity::Matcher.new
     assert_raise RuntimeError do
       matches = matcher.matches(['FOOM'])
@@ -123,7 +118,7 @@ class Tests < Test::Unit::TestCase
     haystack = ['Black Sabbath', 'Led Zeppelin', 'The Doors',
                 'The Beatles', 'Neil Young']
     needles = ['blak sabbath', 'black sabath', 'block soborch']
-    @matcher.corpus = haystack
+    @matcher.haystack = haystack
 
     # Whether matched individually or as a group, all of these needles
     # should produce the same result.

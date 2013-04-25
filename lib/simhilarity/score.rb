@@ -40,8 +40,8 @@ module Simhilarity
     # * +b+: the frequency weighted sum of the ngrams in b
     # * +c+: the frequency weighted sum of the ngrams in (a & b)
     def score(candidate)
-      if options[:scorer]
-        return options[:scorer].call(candidate)
+      if scorer
+        return scorer.call(candidate)
       end
 
       c = (candidate.a.ngrams & candidate.b.ngrams)
