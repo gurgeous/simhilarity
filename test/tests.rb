@@ -12,6 +12,11 @@ class Tests < Test::Unit::TestCase
 
   def setup
     Dir.chdir(File.expand_path("../", __FILE__))
+
+    if File.exists?(Simhilarity::Matcher::CACHE_FILE)
+      File.unlink(Simhilarity::Matcher::CACHE_FILE)
+    end
+
     @matcher = Simhilarity::Matcher.new
   end
 
@@ -62,6 +67,10 @@ class Tests < Test::Unit::TestCase
   def assert_system(cmd)
     system("#{cmd} > #{TMP} 2>&1")
     assert($? == 0, File.read(TMP))
+  end
+
+  def assert_file_exists(path)
+    assert File.exists?(path), "#{path} doesn't exist"
   end
 
   #
@@ -147,5 +156,38 @@ class Tests < Test::Unit::TestCase
     assert_candidates(:all, 0.949)
     assert_candidates(:ngrams, 0.949)
     assert_candidates(:simhash, 0.949)
+  end
+
+  def test_cache_is_created
+    matcher = Simhilarity::Matcher.new
+    matcher.haystack = [ "Adam", "Is", "A", "Cool", "Guy" ]
+    matcher.send(:bk_tree)
+    assert_file_exists Simhilarity::Matcher::CACHE_FILE
+  end
+
+  def test_cache_is_used
+    haystack = [ "Adam", "Is", "A", "Cool", "Guy" ]
+
+    # create the cache
+    matcher = Simhilarity::Matcher.new
+    matcher.haystack = haystack
+    matcher.send(:bk_tree)
+
+    # make sure we use it if the haystacks are identical
+    matcher = Simhilarity::Matcher.new
+    matcher.haystack = haystack
+    assert matcher.uncache, "cache not loaded"
+  end
+
+  def test_cache_not_used
+    # create the cache
+    matcher = Simhilarity::Matcher.new
+    matcher.haystack = [ "Adam", "Is", "A", "Cool", "Guy" ]
+    matcher.send(:bk_tree)
+
+    # make sure we DON'T use it if the haystacks change
+    matcher = Simhilarity::Matcher.new
+    matcher.haystack = [ "Hellow", "World" ]
+    assert !matcher.uncache, "cache loaded"
   end
 end

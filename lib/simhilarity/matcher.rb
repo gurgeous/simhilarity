@@ -1,9 +1,9 @@
-require "bk"
 require "set"
 require "progressbar"
 
 module Simhilarity
   class Matcher
+    include Simhilarity::Caching
     include Simhilarity::Candidates
     include Simhilarity::Score
 
@@ -174,12 +174,18 @@ module Simhilarity
 
     def bk_tree
       @bk_tree ||= begin
-        # calculate this first so we get a nice progress bar
-        veach(" simhash", haystack) { |i| i.simhash }
+        tree = uncache || Bk.new
+        tree.distancer = lambda { |a, b| Bits.hamming32(a.simhash, b.simhash) }
 
-        # build the bk tree
-        tree = BK::Tree.new(lambda { |a, b| Bits.hamming32(a.simhash, b.simhash) })
-        veach(" bktree", haystack) { |i| tree.add(i) }
+        if tree.empty?
+          # calculate this first so we get a nice progress bar
+          veach(" simhash", haystack) { |i| i.simhash }
+
+          # build the bk tree
+          veach(" bktree", haystack) { |i| tree.add(i) }
+          cache(tree)
+        end
+
         tree
       end
     end

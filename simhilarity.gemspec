@@ -15,7 +15,6 @@ Gem::Specification.new do |s|
 
   s.rubyforge_project = "simhilarity"
 
-  s.add_runtime_dependency "bk"
   s.add_runtime_dependency "progressbar"
 
   s.add_development_dependency "awesome_print"

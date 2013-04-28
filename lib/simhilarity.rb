@@ -1,4 +1,6 @@
 require "simhilarity/bits"
+require "simhilarity/bk"
+require "simhilarity/caching"
 require "simhilarity/candidate"
 require "simhilarity/candidates"
 require "simhilarity/element"
