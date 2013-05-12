@@ -1,6 +1,6 @@
 # Welcome to simhilarity
 
-Simhilarity is a gem for quickly matching up text strings that are similar but not identical. Here is how it works:
+Simhilarity is a gem for matching up text strings that are similar but not identical. Here is how it works:
 
 1. Normalize strings. Downcase, remove non-alpha, etc:
 
@@ -17,7 +17,7 @@ Simhilarity is a gem for quickly matching up text strings that are similar but n
 
 1. Calculate frequency of ngrams in the corpus.
 
-1. Select pairs of strings that might be matches. These are called **candidates**, and there are a few different ways they are chosen - see [options](#options). Simhilarity will try to pick the best method based on the size of your data set.
+1. Select pairs of strings that might be matches. These are called **candidates**, and there are a few different ways they are chosen (see **options**). Simhilarity will try to pick the best method based on the size of your data set.
 
 1. Score candidates by measuring ngram overlap (with frequency weighting), using the [dice coefficient](http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient).
 
@@ -64,13 +64,19 @@ score,needle,haystack
 ...
 ```
 
-It will print out the best matches between needle and haystack in CSV format. Use `simhilarity --verbose` to look at pretty progress bars while it's running. Use --candidates to customize the candidates selection method, which will dramatically affect performance for large data sets.
+It will print out the best matches between needle and haystack in CSV format. Use `simhilarity --verbose` to look at pretty progress bars while it's running. Use `--candidates` to customize the candidates selection method, which will dramatically affect performance for large data sets.
 
 ### Simhilarity::Matcher
 
-To use simhilarity from code, create a `Matcher` and call `matches(needles, haystack)`. It'll return an array of tuples, `[needle, haystack, score]`. By default, simhilarity assumes that needles and haystack are arrays of strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See [options](#options).
+To use simhilarity from code:
 
-<a name="benchmarks"/>
+```ruby
+matcher = Simhilarity::Matcher.new
+matcher.haystack = an_array_of_strings
+p matcher.matches(another_array_of_strings)
+```
+
+By default, simhilarity assumes that needles and haystack are arrays of strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See **options**.
 
 ## Benchmarks
 
@@ -81,7 +87,7 @@ When looking at simhilarity's speed, there are two important aspects to consider
 
 #### Picking Candidates
 
-There are three different methods for picking candidates - see [options](#options) for a detailed explanation. Here are some numbers from my i5 3ghz, for a test dataset consisting of 500 needles and 10,000 haystacks.
+There are three different methods for picking candidates - see **options** for a detailed explanation. Here are some numbers from my i5 3ghz, for a test dataset consisting of 500 needles and 10,000 haystacks.
 
 
 ```
@@ -112,27 +118,33 @@ candidates   time
 
 
 
-<a name="options"/>
-
 ## Options
 
 There are a few ways to configure simhilarity:
 
 * **candidates** - controls how candidates are picked from the complete set of all string pairs. We want to avoid looking at all string pairs, because that's quite expensive for large datasets. On the other hand, if we examine too few we might miss some of the best matches. A conundrum. There are three different settings:
 
-  `:simhash` - generate a weighted [simhash](http://matpalm.com/resemblance/simhash/) for each string, then iterate the needles and look for "nearby" haystack simhashes using a [bktree](https://github.com/threedaymonk/bktree). Simhashes are compared using the [hamming distance](http://en.wikipedia.org/wiki/Hamming_distance). If the hamming distance between the simhashes <= `options[:simhash_max_hamming]`, the pair becomes a candidate. The default max hamming distance is 7 - see [benchmarks](#benchmarks) to get a sense for how different values perform.
+  `:simhash` - generate a weighted [simhash](http://matpalm.com/resemblance/simhash/) for each string, then iterate the needles and look for "nearby" haystack simhashes using a [bktree](https://github.com/threedaymonk/bktree). Simhashes are compared using the [hamming distance](http://en.wikipedia.org/wiki/Hamming_distance). If the hamming distance between the simhashes <= `#simhash_max_hamming`, the pair becomes a candidate. The default max hamming distance is 7.
 
-  `:ngrams` - for each pair of strings, count the number of ngrams they have in common. If the overlap is >= `options[:ngram_overlaps]`, the pair becomes a candidate. The default minimum number of overlaps is 3 - see [benchmarks](#benchmarks) to get a sense for how different values perform.
+  `:ngrams` - for each pair of strings, count the number of ngrams they have in common. If the overlap is >= `#ngram_overlaps`, the pair becomes a candidate. The default minimum number of overlaps is 3.
 
   `:all` - all pairs are examined. This is completely braindead and very slow for large datasets.
 
   Simhash works great, but there's no reason not to use `:ngrams` or even `:all` for small data sets. In fact, that's what simhilarity does by default - if you use a small dataset (needle * haystack < 200,000) it defaults to `:all`, otherwise it uses `:simhash`. Some examples:
 
   ```ruby
-  Simhilarity::Matcher.new  # defaults to :all or :simhash based on size
-  Simhilarity::Matcher.new(candidates: :simhash)
-  Simhilarity::Matcher.new(candidates: :simhash, simhash_max_hamming: 8)
-  Simhilarity::Matcher.new(candidates: :ngrams, ngram_overlaps: 4)
+  # defaults to :all or :simhash based on data set size
+  matcher = Simhilarity::Matcher.new
+
+  # use :simhash, custom max_hamming
+  matcher = Simhilarity::Matcher.new
+  matcher.candidates = :simhash
+  matcher.simhash_max_hamming =  8
+
+  # use :ngrams, custom overlaps
+  matcher = Simhilarity::Matcher.new
+  matcher.candidates = :ngrams
+  matcher.ngram_overlaps = 4
   ```
 
   or:
@@ -148,7 +160,8 @@ There are a few ways to configure simhilarity:
 
    ```ruby
    matcher.reader = lambda { |i| i.author }
-   matcher.matches(needles, haystack)
+   matcher.haystack = haystack
+   matcher.matches(needles)
    ```
 
 * **normalizer** - proc for normalizing incoming strings. The default normalizer downcases, removes non-alphas, and strips whitespace.
@@ -163,3 +176,4 @@ There are a few ways to configure simhilarity:
 
 * Works with Ruby 2.0 - thanks @abscondment!
 * Travis
+* Accessor for options instead of a gigantic hash
