@@ -168,6 +168,8 @@ There are a few ways to configure simhilarity:
 
 * **ngrammer** - proc for converting normalized strings into ngrams. The default ngrammer pulls out bigrams and runs of digits, which is perfect for matching names and addresses.
 
+* **scorer** - proc for scoring candidates. By default, measures ngram overlap (with frequency weighting), using the [dice coefficient](http://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient).
+
 * **verbose** - if true, show progress while simhilarity is working. Great for the impatient. Use --verbose from the command line.
 
 ## Changelog
