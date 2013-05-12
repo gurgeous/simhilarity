@@ -71,9 +71,22 @@ It will print out the best matches between needle and haystack in CSV format. Us
 To use simhilarity from code:
 
 ```ruby
+require "rubygems"
+require "simhilarity"
+
+haystack = ["Black Sabbath", "Led Zeppelin", "The Doors",
+            "The Beatles", "Neil Young"]
+needles = ["blak sabbath", "doors", "neal yung"]
+
 matcher = Simhilarity::Matcher.new
-matcher.haystack = an_array_of_strings
-p matcher.matches(another_array_of_strings)
+matcher.haystack = haystack
+matcher.matches(needles).each do |needle, haystack, score|
+  printf "%.2f %s / %s\n", score, needle, haystack
+end
+
+# 0.90 blak sabbath / Black Sabbath
+# 0.77 doors / The Doors
+# 0.67 neal yung / Neil Young
 ```
 
 By default, simhilarity assumes that needles and haystack are arrays of strings. To use something else, set `reader` to a proc that converts your opaque objects into strings. See **options**.
