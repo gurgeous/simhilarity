@@ -6,6 +6,7 @@ Gem::Specification.new do |s|
   s.name        = "simhilarity"
   s.version     = Simhilarity::VERSION
   s.platform    = Gem::Platform::RUBY
+  s.license     = "MIT"
   s.required_ruby_version = ">= 1.9.0"
   s.authors     = ["Adam Doppelt"]
   s.email       = ["amd@gurge.com"]
